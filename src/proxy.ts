@@ -19,4 +19,6 @@ export function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
-export const config = { matcher: ["/((?!favicon.ico).*)"] };
+export const config = {
+  matcher: ["/((?!favicon.ico|.*\\.(?:png|jpg|jpeg|svg|webp|ico)$).*)"],
+};

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Image from "next/image";
 import { login } from "@/lib/auth";
 
 async function enter() {
@@ -12,9 +13,19 @@ export default function LoginPage() {
   return (
     <div className="login login-overlay">
       <div className="card">
-        <div className="brand login-brand">
-          <span className="brandmark">C+</span>
-          Clinika <span className="brand-ai">AI</span>
+        <div className="login-brand">
+          <Image
+            className="login-logo"
+            src="/davalsy-logo.png"
+            alt="Davalsy Solutions"
+            width={215}
+            height={53}
+            priority
+          />
+          <div className="login-product">
+            Clinika <span className="brand-ai">AI</span>
+          </div>
+          <div className="login-byline">by Davalsy Solutions</div>
         </div>
         <div className="eyebrow">Acceso demo</div>
         <h1>Bienvenida de vuelta</h1>

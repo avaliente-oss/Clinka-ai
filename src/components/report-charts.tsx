@@ -13,7 +13,7 @@ import {
   YAxis,
 } from "recharts";
 
-const colors = ["#0f9f94", "#3b82f6", "#f3a633", "#ef6b61", "#8b6bd8"];
+const colors = ["#005864", "#FE7D00", "#79A919", "#E3261B", "#5B8F99"];
 
 type ChartItem = {
   name: string;
@@ -46,7 +46,7 @@ export function ReportCharts({
                   `$${Number(value).toLocaleString("es-MX")}`
                 }
               />
-              <Bar dataKey="total" fill="#0f9f94" radius={[7, 7, 0, 0]} />
+              <Bar dataKey="total" fill="#005864" radius={[7, 7, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

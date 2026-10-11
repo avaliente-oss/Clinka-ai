@@ -1,11 +1,26 @@
 @import "tailwindcss";
 :root {
-  --ink:#16343b;
-  --muted:#688087;
-  --line:#dce8e8;
-  --teal:#0f9f94;
-  --pale:#eef9f7;
-  --bg:#f5f8f8
+  --primary:#005864;
+  --primary-dark:#00434d;
+  --primary-soft:#5b8f99;
+  --green:#79a919;
+  --green-dark:#46620e;
+  --green-pale:#f0f6e5;
+  --orange:#fe7d00;
+  --orange-dark:#8a4400;
+  --orange-pale:#fff1e3;
+  --red:#e3261b;
+  --red-dark:#a91d15;
+  --red-pale:#fde9e7;
+  --ink:#123d43;
+  --muted:#5b7479;
+  --line:#d3e1e3;
+  --pale:#eaf2f3;
+  --bg:#f6f9f9;
+  --surface:#fff;
+  --surface-subtle:#f2f7f7;
+  --shadow:rgba(0,67,77,.08);
+  --focus:rgba(0,88,100,.18)
 }
 
 * {
@@ -25,18 +40,27 @@ button,input,select,textarea {
 
 a {
   text-decoration:none;
-  color:inherit
+  color:var(--primary)
 }
 
 .shell {
   min-height:100vh
 }
 
+.shell::before {
+  content:"";
+  position:fixed;
+  inset:0 0 auto;
+  height:4px;
+  background:linear-gradient(90deg,var(--primary) 0 25%,var(--green) 25% 50%,var(--orange) 50% 75%,var(--red) 75%);
+  z-index:100
+}
+
 .sidebar {
   position:fixed;
   inset:0 auto 0 0;
   width:236px;
-  background:#fff;
+  background:var(--surface);
   border-right:1px solid var(--line);
   padding:24px 16px;
   z-index:10
@@ -52,13 +76,10 @@ a {
 }
 
 .brandmark {
-  display:grid;
-  place-items:center;
+  display:block;
   width:34px;
-  height:34px;
-  border-radius:11px;
-  background:linear-gradient(135deg,#12b9aa,#2878d2);
-  color:white
+  height:auto;
+  flex:0 0 auto
 }
 
 .nav {
@@ -72,13 +93,19 @@ a {
   gap:12px;
   padding:11px 12px;
   border-radius:10px;
-  color:#547077;
+  color:var(--muted);
   font-size:14px
 }
 
-.nav a:hover {
+.nav a:hover,
+.nav a.active {
   background:var(--pale);
-  color:#087d75
+  color:var(--primary-dark)
+}
+
+.nav a.active {
+  box-shadow:inset 3px 0 0 var(--primary);
+  font-weight:700
 }
 
 .clinic {
@@ -98,7 +125,7 @@ a {
 
 .topbar {
   height:74px;
-  background:#fff;
+  background:var(--surface);
   border-bottom:1px solid var(--line);
   display:flex;
   align-items:center;
@@ -119,7 +146,7 @@ a {
   font-size:12px;
   text-transform:uppercase;
   letter-spacing:.12em;
-  color:#6b858b;
+  color:var(--primary-soft);
   font-weight:700
 }
 
@@ -160,11 +187,11 @@ a {
 }
 
 .card {
-  background:#fff;
+  background:var(--surface);
   border:1px solid var(--line);
   border-radius:16px;
   padding:20px;
-  box-shadow:0 2px 8px #17454d08
+  box-shadow:0 2px 8px var(--shadow)
 }
 
 .card h2,.card h3 {
@@ -184,7 +211,7 @@ a {
 
 .kpi .delta {
   font-size:12px;
-  color:#228b68
+  color:var(--green-dark)
 }
 
 .iconbox {
@@ -193,7 +220,7 @@ a {
   display:grid;
   place-items:center;
   background:var(--pale);
-  color:var(--teal);
+  color:var(--primary);
   border-radius:11px
 }
 
@@ -214,23 +241,23 @@ a {
   padding:5px 9px;
   font-size:11px;
   font-weight:700;
-  background:#edf4f5;
-  color:#527077
+  background:var(--pale);
+  color:var(--primary-dark)
 }
 
 .badge.CONFIRMADA,.badge.ATENDIDA,.badge.ACEPTADO,.badge.TERMINADO {
-  background:#e4f8f1;
-  color:#177c5c
+  background:var(--green-pale);
+  color:var(--green-dark)
 }
 
 .badge.NO_ASISTIO,.badge.CANCELADA {
-  background:#fff0ee;
-  color:#b4493d
+  background:var(--red-pale);
+  color:var(--red-dark)
 }
 
 .badge.EN_CURSO {
-  background:#eaf2ff;
-  color:#286dc2
+  background:var(--orange-pale);
+  color:var(--orange-dark)
 }
 
 .btn {
@@ -244,17 +271,21 @@ a {
   font-weight:700;
   font-size:13px;
   cursor:pointer;
-  background:#e9f3f3;
-  color:#315f66
+  background:var(--pale);
+  color:var(--primary-dark)
 }
 
 .btn.primary {
-  background:var(--teal);
-  color:#fff
+  background:var(--primary);
+  color:var(--surface)
+}
+
+.btn.primary:hover {
+  background:var(--primary-dark)
 }
 
 .btn.ghost {
-  background:white;
+  background:var(--surface);
   border:1px solid var(--line)
 }
 
@@ -267,7 +298,7 @@ a {
   align-items:center;
   justify-content:space-between;
   padding:14px 0;
-  border-bottom:1px solid #edf2f2
+  border-bottom:1px solid var(--pale)
 }
 
 .listitem:last-child {
@@ -280,8 +311,8 @@ a {
   border-radius:50%;
   display:grid;
   place-items:center;
-  background:#dff4f1;
-  color:#087d75;
+  background:var(--pale);
+  color:var(--primary-dark);
   font-weight:800
 }
 
@@ -291,13 +322,13 @@ a {
 }
 
 .ai {
-  background:linear-gradient(135deg,#f1fbf9,#eef5ff);
-  border-color:#cfe9e6
+  background:linear-gradient(135deg,var(--orange-pale),var(--surface));
+  border-color:var(--orange)
 }
 
 .ai-label {
   font-size:11px;
-  color:#6b6e98;
+  color:var(--orange-dark);
   margin-top:14px;
   display:flex;
   align-items:center;
@@ -316,7 +347,7 @@ a {
 
 .table th {
   text-align:left;
-  color:#748a8f;
+  color:var(--muted);
   font-size:11px;
   text-transform:uppercase;
   letter-spacing:.05em;
@@ -326,21 +357,21 @@ a {
 
 .table td {
   padding:14px 12px;
-  border-bottom:1px solid #edf2f2
+  border-bottom:1px solid var(--pale)
 }
 
 .input {
   width:100%;
-  border:1px solid #d6e3e3;
+  border:1px solid var(--line);
   border-radius:10px;
-  background:white;
+  background:var(--surface);
   padding:10px 12px;
   outline:none
 }
 
 .input:focus {
-  border-color:var(--teal);
-  box-shadow:0 0 0 3px #0f9f9418
+  border-color:var(--primary);
+  box-shadow:0 0 0 3px var(--focus)
 }
 
 .formgrid {
@@ -352,7 +383,7 @@ a {
 .field label {
   font-size:11px;
   font-weight:700;
-  color:#658087;
+  color:var(--muted);
   display:block;
   margin:0 0 6px
 }
@@ -368,14 +399,14 @@ a {
 .tab {
   padding:10px 12px;
   font-size:13px;
-  color:#658087;
+  color:var(--muted);
   border-bottom:2px solid transparent;
   white-space:nowrap
 }
 
 .tab.active {
-  color:#087d75;
-  border-color:var(--teal);
+  color:var(--primary-dark);
+  border-color:var(--primary);
   font-weight:700
 }
 
@@ -392,12 +423,12 @@ a {
   border-right:1px solid var(--line);
   border-bottom:1px solid var(--line);
   min-height:58px;
-  background:#fff
+  background:var(--surface)
 }
 
 .appt {
-  background:#e7f7f4!important;
-  border-left:3px solid var(--teal);
+  background:var(--pale)!important;
+  border-left:3px solid var(--primary);
   font-size:12px
 }
 
@@ -413,9 +444,9 @@ a {
 
 .tooth {
   aspect-ratio:1;
-  border:1px solid #bfd8d8;
+  border:1px solid var(--line);
   border-radius:6px;
-  background:#fff;
+  background:var(--surface);
   display:grid;
   place-items:center;
   font-size:11px;
@@ -423,8 +454,8 @@ a {
 }
 
 .tooth.marked {
-  background:#ffe4b8;
-  border-color:#ed9b29
+  background:var(--orange-pale);
+  border-color:var(--orange)
 }
 
 .chart {
@@ -437,7 +468,7 @@ a {
 
 .bar {
   flex:1;
-  background:linear-gradient(#39b6ac,#0f8e86);
+  background:linear-gradient(var(--primary-soft),var(--primary));
   border-radius:7px 7px 0 0;
   min-height:8px;
   position:relative
@@ -449,12 +480,12 @@ a {
   width:100%;
   text-align:center;
   font-size:10px;
-  color:#789
+  color:var(--muted)
 }
 
 .progress {
   height:8px;
-  background:#eaf1f1;
+  background:var(--pale);
   border-radius:8px;
   overflow:hidden
 }
@@ -462,7 +493,7 @@ a {
 .progress>i {
   display:block;
   height:100%;
-  background:var(--teal);
+  background:var(--primary);
   border-radius:8px
 }
 
@@ -473,8 +504,8 @@ a {
 .notice {
   padding:12px 14px;
   border-radius:10px;
-  background:#fff8e6;
-  color:#80631c;
+  background:var(--orange-pale);
+  color:var(--orange-dark);
   font-size:12px;
   margin-bottom:16px
 }
@@ -482,14 +513,14 @@ a {
 .chat {
   height:210px;
   overflow:auto;
-  background:#f7fafb;
+  background:var(--surface-subtle);
   border-radius:12px;
   padding:12px
 }
 
 .bubble {
   max-width:88%;
-  background:#e6f6f4;
+  background:var(--pale);
   border-radius:12px 12px 12px 3px;
   padding:10px;
   font-size:13px;
@@ -500,7 +531,7 @@ a {
   min-height:100vh;
   display:grid;
   place-items:center;
-  background:linear-gradient(135deg,#effaf8,#eef4fb)
+  background:linear-gradient(135deg,var(--pale),var(--surface-subtle))
 }
 
 .login .card {
@@ -569,7 +600,7 @@ a {
 }
 
 .brand-ai {
-  color: var(--teal);
+  color: var(--orange);
 }
 
 .avatar-small {
@@ -619,8 +650,29 @@ a {
 }
 
 .login-brand {
-  padding: 0;
-  margin-bottom: 20px;
+  display: grid;
+  justify-items: center;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.login-logo {
+  width: min(215px, 72%);
+  height: auto;
+  margin-bottom: 18px;
+}
+
+.login-product {
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.login-byline {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
 }
 
 .login-form {
@@ -663,7 +715,7 @@ a {
   align-items: start;
   gap: 16px;
   padding: 16px 0;
-  border-bottom: 1px solid #edf2f2;
+  border-bottom: 1px solid var(--pale);
 }
 
 .appointment:last-child {
@@ -702,15 +754,15 @@ a {
   margin-top: 5px;
   font-size: 11px;
   font-weight: 700;
-  color: #4b7378;
+  color: var(--primary-dark);
 }
 
 .risk-alto {
-  color: #b4493d;
+  color: var(--red-dark);
 }
 
 .risk-medio {
-  color: #9a6513;
+  color: var(--orange-dark);
 }
 
 .patient-search {
@@ -748,7 +800,7 @@ a {
 
 .clinical-note {
   padding: 16px 0;
-  border-bottom: 1px solid #edf2f2;
+  border-bottom: 1px solid var(--pale);
   font-size: 13px;
 }
 
@@ -762,7 +814,7 @@ a {
 
 .treatment-card {
   padding: 14px 0;
-  border-bottom: 1px solid #edf2f2;
+  border-bottom: 1px solid var(--pale);
 }
 
 .treatment-card:last-child {
@@ -803,7 +855,7 @@ a {
   display: block;
   width: 12px;
   height: 12px;
-  background: #ffe4b8;
+  background: var(--orange-pale);
 }
 
 .tooth {
@@ -815,7 +867,7 @@ a {
   right: 2px;
   bottom: 1px;
   font-size: 7px;
-  color: #8b5a0a;
+  color: var(--orange-dark);
 }
 
 .odontogram-editor {
@@ -860,8 +912,8 @@ a {
 }
 
 .btn.danger {
-  color: #b4493d;
-  background: #fff0ee;
+  color: var(--red-dark);
+  background: var(--red-pale);
 }
 
 .summary-value {
@@ -872,7 +924,7 @@ a {
 .message-preview {
   padding: 14px;
   border-radius: 10px;
-  background: #f6fafa;
+  background: var(--surface-subtle);
   line-height: 1.5;
 }
 
