@@ -5,7 +5,7 @@ MVP funcional de gestión de consultorios para clínicas dentales y médicas en 
 ## Despliegue en Vercel
 
 1. Importa este repositorio de GitHub como un proyecto nuevo en Vercel.
-2. En el proyecto, abre **Storage**, crea una base de datos **Neon Postgres** y conéctala al proyecto. Vercel añadirá `DATABASE_URL` (conexión agrupada) y `DATABASE_URL_UNPOOLED` (conexión directa).
+2. En el proyecto, abre **Storage**, crea una base de datos **Prisma Postgres** (o Neon) y conéctala al proyecto. Vercel añadirá `DATABASE_URL`.
 3. Opcionalmente, añade `ANTHROPIC_API_KEY` en **Settings → Environment Variables** para usar Anthropic. Sin ella, las funciones de IA responden con datos demo deterministas. Puedes configurar `AI_MODEL`; el valor predeterminado es `claude-sonnet-5-5`.
 4. Despliega el proyecto. El script `vercel-build` genera Prisma Client, aplica las migraciones, carga los datos demo de forma segura y compila Next.js automáticamente.
 
@@ -13,11 +13,11 @@ Al terminar, inicia sesión con `demo@clinika.mx` / `demo123`.
 
 ## Desarrollo local
 
-Necesitas Node.js y una base de datos Neon —o cualquier PostgreSQL compatible— accesible desde tu equipo.
+Necesitas Node.js y una base de datos PostgreSQL (Prisma Postgres, Neon u otra) accesible desde tu equipo.
 
 ```bash
 cp .env.example .env
-# Sustituye DATABASE_URL y DATABASE_URL_UNPOOLED en .env por tus URLs de PostgreSQL.
+# Sustituye DATABASE_URL en .env por tus URLs de PostgreSQL.
 npm install
 npm run db:setup
 npm run dev
