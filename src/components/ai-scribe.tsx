@@ -1,3 +1,135 @@
-"use client";import{useState}from"react";import{saveSoap}from"@/lib/actions";import{AIDisclaimer}from"./ai-disclaimer";import{Mic,Sparkles}from"lucide-react";
-type Soap={subjective:string;objective:string;assessment:string;plan:string;diagnoses:{code:string;label:string}[]};
-export function AIScribe({patientId}:{patientId:string}){const[text,setText]=useState("");const[soap,setSoap]=useState<Soap|null>(null);const[busy,setBusy]=useState(false);async function generate(){setBusy(true);const r=await fetch("/api/ai/scribe",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({text})});setSoap(await r.json());setBusy(false)}function dictate(){const W=(window as unknown as {webkitSpeechRecognition?:new()=>{lang:string;onresult:(e:{results:{0:{0:{transcript:string}}}[]})=>void;start:()=>void}}).webkitSpeechRecognition;if(!W)return alert("El dictado no está disponible en este navegador.");const rec=new W();rec.lang="es-MX";rec.onresult=e=>setText(e.results[0][0].transcript);rec.start()}return <div className="card ai"><div className="row"><Sparkles size={19}/><h2 style={{margin:0}}>Escriba clínico IA</h2></div><p className="small">Pega o dicta la consulta. Revisa el resultado antes de guardarlo.</p><textarea className="input" rows={4} value={text} onChange={e=>setText(e.target.value)} placeholder="Paciente refiere dolor al masticar…"/><div className="row" style={{marginTop:10}}><button className="btn ghost" type="button" onClick={dictate}><Mic size={15}/> Dictar</button><button className="btn primary" type="button" onClick={generate} disabled={busy}>{busy?"Estructurando…":"Generar SOAP"}</button></div>{soap&&<form action={saveSoap} className="formgrid" style={{marginTop:16}}><input type="hidden" name="patientId" value={patientId}/>{(["subjective","objective","assessment","plan"] as const).map(k=><div className="field" key={k}><label>{{subjective:"Subjetivo",objective:"Objetivo",assessment:"Evaluación",plan:"Plan"}[k]}</label><textarea className="input" name={k} rows={3} defaultValue={soap[k]}/></div>)}<div className="field" style={{gridColumn:"1/-1"}}><label>Diagnósticos sugeridos</label><input className="input" name="diagnoses" defaultValue={soap.diagnoses.map(d=>`${d.code} · ${d.label}`).join(", ")}/></div><button className="btn primary" style={{gridColumn:"1/-1"}}>Confirmar y guardar nota</button></form>}<AIDisclaimer/></div>}
+"use client";
+
+import { useState } from "react";
+import { Mic, Sparkles } from "lucide-react";
+import { saveSoap } from "@/lib/actions";
+import { AIDisclaimer } from "./ai-disclaimer";
+
+type Soap = {
+  subjective: string;
+  objective: string;
+  assessment: string;
+  plan: string;
+  diagnoses: { code: string; label: string }[];
+};
+
+type SpeechRecognitionConstructor = new () => {
+  lang: string;
+  onresult: (event: {
+    results: { 0: { transcript: string } }[];
+  }) => void;
+  start: () => void;
+};
+
+const fieldLabels = {
+  subjective: "Subjetivo",
+  objective: "Objetivo",
+  assessment: "Evaluación",
+  plan: "Plan",
+};
+
+export function AIScribe({ patientId }: { patientId: string }) {
+  const [text, setText] = useState("");
+  const [soap, setSoap] = useState<Soap | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function generate() {
+    if (!text.trim()) return;
+    setBusy(true);
+    const response = await fetch("/api/ai/scribe", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    setSoap((await response.json()) as Soap);
+    setBusy(false);
+  }
+
+  function dictate() {
+    const SpeechRecognition = (
+      window as unknown as {
+        webkitSpeechRecognition?: SpeechRecognitionConstructor;
+      }
+    ).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      window.alert("El dictado no está disponible en este navegador.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "es-MX";
+    recognition.onresult = (event) => {
+      setText(event.results[0][0].transcript);
+    };
+    recognition.start();
+  }
+
+  return (
+    <div className="card ai">
+      <div className="row">
+        <Sparkles size={19} />
+        <h2>Escriba clínico IA</h2>
+      </div>
+      <p className="small">
+        Pega o dicta la consulta. El resultado no se guarda hasta que lo confirmes.
+      </p>
+      <textarea
+        className="input"
+        rows={4}
+        value={text}
+        onChange={(event) => setText(event.target.value)}
+        placeholder="Paciente refiere dolor al masticar…"
+      />
+      <div className="row top-gap">
+        <button className="btn ghost" type="button" onClick={dictate}>
+          <Mic size={15} />
+          Dictar
+        </button>
+        <button
+          className="btn primary"
+          type="button"
+          onClick={generate}
+          disabled={busy || !text.trim()}
+        >
+          {busy ? "Estructurando…" : "Generar SOAP"}
+        </button>
+      </div>
+
+      {soap && (
+        <form action={saveSoap} className="formgrid generated-form">
+          <input type="hidden" name="patientId" value={patientId} />
+          <input type="hidden" name="aiGenerated" value="true" />
+          {(Object.keys(fieldLabels) as (keyof typeof fieldLabels)[]).map(
+            (field) => (
+              <div className="field" key={field}>
+                <label>{fieldLabels[field]}</label>
+                <textarea
+                  className="input"
+                  name={field}
+                  rows={3}
+                  defaultValue={soap[field]}
+                  required
+                />
+              </div>
+            ),
+          )}
+          <div className="field span-all">
+            <label>Diagnósticos CIE-10 sugeridos</label>
+            <input
+              className="input"
+              name="diagnoses"
+              defaultValue={soap.diagnoses
+                .map((diagnosis) => `${diagnosis.code} · ${diagnosis.label}`)
+                .join(", ")}
+            />
+          </div>
+          <AIDisclaimer />
+          <button className="btn primary span-all">
+            Confirmar y guardar nota
+          </button>
+        </form>
+      )}
+    </div>
+  );
+}

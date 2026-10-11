@@ -1,4 +1,52 @@
-export const money=(n:number)=>new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0}).format(n);
-export const dateMx=(d:Date|string,opts:Intl.DateTimeFormatOptions={dateStyle:"medium"})=>new Intl.DateTimeFormat("es-MX",opts).format(new Date(d));
-export const statusLabel:Record<string,string>={AGENDADA:"Agendada",CONFIRMADA:"Confirmada",ATENDIDA:"Atendida",NO_ASISTIO:"No asistió",CANCELADA:"Cancelada",PROPUESTO:"Propuesto",ACEPTADO:"Aceptado",EN_CURSO:"En curso",TERMINADO:"Terminado"};
-export function noShowRisk(input:{noShows:number;daysAhead:number;hour:number;confirmed:boolean}){let score=10+input.noShows*22+(input.daysAhead>10?12:0)+(input.hour<9||input.hour>17?8:0)-(input.confirmed?25:0);score=Math.max(3,Math.min(96,score));return {score,level:score>=65?"Alto":score>=35?"Medio":"Bajo",explanation:input.confirmed?"La confirmación reduce el riesgo; considera un recordatorio el mismo día.":"Sin confirmación todavía. Conviene enviar un recordatorio personalizado."};}
+export const money = (value: number) =>
+  new Intl.NumberFormat("es-MX", {
+    style: "currency",
+    currency: "MXN",
+    maximumFractionDigits: 0,
+  }).format(value);
+
+export const dateMx = (
+  date: Date | string,
+  options: Intl.DateTimeFormatOptions = { dateStyle: "medium" },
+) => new Intl.DateTimeFormat("es-MX", options).format(new Date(date));
+
+export const statusLabel: Record<string, string> = {
+  AGENDADA: "Agendada",
+  CONFIRMADA: "Confirmada",
+  ATENDIDA: "Atendida",
+  NO_ASISTIO: "No asistió",
+  CANCELADA: "Cancelada",
+  PROPUESTO: "Propuesto",
+  ACEPTADO: "Aceptado",
+  EN_CURSO: "En curso",
+  TERMINADO: "Terminado",
+};
+
+export function noShowRisk(input: {
+  noShows: number;
+  daysAhead: number;
+  hour: number;
+  confirmed: boolean;
+}) {
+  let score =
+    10 +
+    input.noShows * 22 +
+    (input.daysAhead > 10 ? 12 : 0) +
+    (input.hour < 9 || input.hour > 17 ? 8 : 0) -
+    (input.confirmed ? 25 : 0);
+
+  score = Math.max(3, Math.min(96, score));
+
+  return {
+    score,
+    level: score >= 65 ? "Alto" : score >= 35 ? "Medio" : "Bajo",
+    explanation: input.confirmed
+      ? "La confirmación reduce el riesgo; considera un recordatorio el mismo día."
+      : "Sin confirmación todavía. Conviene enviar un recordatorio personalizado.",
+  };
+}
+
+export function localDateTimeValue(date: Date) {
+  const offset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+}

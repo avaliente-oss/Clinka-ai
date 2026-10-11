@@ -1,2 +1,81 @@
-import{db}from"@/lib/db";import{ReportCharts}from"@/components/report-charts";import{statusLabel}from"@/lib/utils";import{AIDisclaimer}from"@/components/ai-disclaimer";
-export default async function Reports(){const[payments,appts,items]=await Promise.all([db.payment.findMany(),db.appointment.groupBy({by:["status"],_count:true}),db.treatmentItem.groupBy({by:["description"],_count:true,orderBy:{_count:{description:"desc"}},take:5})]);const fmt=new Intl.DateTimeFormat("es-MX",{month:"short"});const buckets=new Map<string,number>();for(const p of payments){const k=fmt.format(p.date);buckets.set(k,(buckets.get(k)||0)+p.amount)}const monthly=[...buckets].map(([name,total])=>({name,total}));const statuses=appts.map(x=>({name:statusLabel[x.status]||x.status,value:x._count}));const treatments=items.map(x=>({name:x.description,value:x._count}));return <><div className="pagehead"><div><div className="eyebrow">Inteligencia del negocio</div><h1 className="title">Reportes</h1><p className="subtitle">Desempeño clínico y financiero</p></div><select className="input" style={{width:170}}><option>Últimos 6 meses</option></select></div><div className="card ai" style={{marginBottom:18}}><h3>Resumen ejecutivo IA</h3><p>La cobranza se mantiene estable. La principal oportunidad operativa es mejorar la confirmación anticipada y ofrecer espacios liberados a pacientes en seguimiento.</p><div className="row" style={{flexWrap:"wrap"}}><span className="badge">1. Confirmar riesgo alto</span><span className="badge">2. Recuperar saldos</span><span className="badge">3. Promover prevención</span></div><AIDisclaimer/></div><ReportCharts monthly={monthly.length?monthly:[{name:"oct",total:0}]} statuses={statuses} treatments={treatments}/></>}
+import { AIDisclaimer } from "@/components/ai-disclaimer";
+import { ReportCharts } from "@/components/report-charts";
+import { businessInsights } from "@/lib/ai/insights";
+import { db } from "@/lib/db";
+import { statusLabel } from "@/lib/utils";
+
+export const dynamic = "force-dynamic";
+
+export default async function ReportsPage() {
+  const start = new Date();
+  start.setMonth(start.getMonth() - 5, 1);
+  start.setHours(0, 0, 0, 0);
+
+  const [payments, appointments, treatmentItems] = await Promise.all([
+    db.payment.findMany({ where: { date: { gte: start } } }),
+    db.appointment.groupBy({ by: ["status"], _count: true }),
+    db.treatmentItem.groupBy({
+      by: ["description"],
+      _count: true,
+      orderBy: { _count: { description: "desc" } },
+      take: 5,
+    }),
+  ]);
+
+  const formatter = new Intl.DateTimeFormat("es-MX", { month: "short" });
+  const monthly = Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(start);
+    date.setMonth(start.getMonth() + index);
+    const total = payments
+      .filter(
+        (payment) =>
+          payment.date.getFullYear() === date.getFullYear() &&
+          payment.date.getMonth() === date.getMonth(),
+      )
+      .reduce((sum, payment) => sum + payment.amount, 0);
+    return { name: formatter.format(date), total };
+  });
+  const statuses = appointments.map((item) => ({
+    name: statusLabel[item.status] || item.status,
+    value: item._count,
+  }));
+  const treatments = treatmentItems.map((item) => ({
+    name: item.description,
+    value: item._count,
+  }));
+  const insights = await businessInsights(
+    JSON.stringify({ monthly, statuses, treatments }),
+  );
+
+  return (
+    <>
+      <div className="pagehead">
+        <div>
+          <div className="eyebrow">Inteligencia del negocio</div>
+          <h1 className="title">Reportes</h1>
+          <p className="subtitle">Desempeño clínico y financiero</p>
+        </div>
+        <span className="badge report-period">Últimos 6 meses</span>
+      </div>
+
+      <div className="card ai report-insight">
+        <h3>Resumen ejecutivo IA</h3>
+        <p>{insights.summary}</p>
+        <div className="row recommendation-list">
+          {insights.recommendations.map((recommendation, index) => (
+            <span className="badge" key={recommendation}>
+              {index + 1}. {recommendation}
+            </span>
+          ))}
+        </div>
+        <AIDisclaimer />
+      </div>
+
+      <ReportCharts
+        monthly={monthly}
+        statuses={statuses}
+        treatments={treatments}
+      />
+    </>
+  );
+}

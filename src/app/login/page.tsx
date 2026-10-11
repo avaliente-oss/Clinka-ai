@@ -1,3 +1,44 @@
-import{login}from"@/lib/auth";import{redirect}from"next/navigation";
-async function enter(){"use server";await login();redirect("/")}
-export default function Login(){return <div className="login" style={{position:"fixed",inset:0,zIndex:50}}><div className="card"><div className="brand" style={{padding:0,marginBottom:20}}><span className="brandmark">C+</span>Clinika <span style={{color:"#0f9f94"}}>AI</span></div><div className="eyebrow">Acceso demo</div><h1>Bienvenida de vuelta</h1><p className="subtitle">Gestión clínica inteligente para tu equipo.</p><form action={enter} style={{marginTop:24}}><div className="field"><label>Correo</label><input className="input" value="demo@clinika.mx" readOnly/></div><div className="field" style={{marginTop:12}}><label>Contraseña</label><input className="input" type="password" value="demo123" readOnly/></div><button className="btn primary" style={{width:"100%",marginTop:18}}>Entrar a la demo</button></form><p className="small" style={{textAlign:"center",marginTop:16}}>Sesión local por cookie · sin proveedores externos</p></div></div>}
+import { redirect } from "next/navigation";
+import { login } from "@/lib/auth";
+
+async function enter() {
+  "use server";
+
+  await login();
+  redirect("/");
+}
+
+export default function LoginPage() {
+  return (
+    <div className="login login-overlay">
+      <div className="card">
+        <div className="brand login-brand">
+          <span className="brandmark">C+</span>
+          Clinika <span className="brand-ai">AI</span>
+        </div>
+        <div className="eyebrow">Acceso demo</div>
+        <h1>Bienvenida de vuelta</h1>
+        <p className="subtitle">Gestión clínica inteligente para tu equipo.</p>
+        <form action={enter} className="login-form">
+          <div className="field">
+            <label>Correo</label>
+            <input className="input" value="demo@clinika.mx" readOnly />
+          </div>
+          <div className="field top-gap">
+            <label>Contraseña</label>
+            <input
+              className="input"
+              type="password"
+              value="demo123"
+              readOnly
+            />
+          </div>
+          <button className="btn primary full-button">Entrar a la demo</button>
+        </form>
+        <p className="small centered login-note">
+          Sesión local por cookie · sin proveedores externos
+        </p>
+      </div>
+    </div>
+  );
+}
