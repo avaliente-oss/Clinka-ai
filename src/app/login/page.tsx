@@ -22,9 +22,7 @@ export default function LoginPage() {
             height={53}
             priority
           />
-          <div className="login-product">
-            Clinika <span className="brand-ai">AI</span>
-          </div>
+          <div className="login-product">Clinika AI</div>
           <div className="login-byline">by Davalsy Solutions</div>
         </div>
         <div className="eyebrow">Acceso demo</div>

@@ -13,7 +13,19 @@ import {
   YAxis,
 } from "recharts";
 
-const colors = ["#005864", "#FE7D00", "#79A919", "#E3261B", "#5B8F99"];
+const chartColors = [
+  "var(--chart-primary)",
+  "var(--chart-neutral)",
+  "var(--chart-neutral-strong)",
+];
+
+function statusColor(name: string) {
+  const status = name.toLocaleLowerCase("es-MX");
+  if (status.includes("confirm") || status.includes("atendid")) return "var(--success)";
+  if (status.includes("no asist") || status.includes("cancel")) return "var(--danger)";
+  if (status.includes("pend")) return "var(--warning)";
+  return "var(--chart-primary)";
+}
 
 type ChartItem = {
   name: string;
@@ -38,15 +50,21 @@ export function ReportCharts({
         <div className="chart-container">
           <ResponsiveContainer>
             <BarChart data={monthly}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="name" />
-              <YAxis />
+              <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="name" stroke="var(--text-muted)" />
+              <YAxis stroke="var(--text-muted)" />
               <Tooltip
+                contentStyle={{
+                  background: "var(--surface-raised)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "6px",
+                  color: "var(--text)",
+                }}
                 formatter={(value) =>
                   `$${Number(value).toLocaleString("es-MX")}`
                 }
               />
-              <Bar dataKey="total" fill="#005864" radius={[7, 7, 0, 0]} />
+              <Bar dataKey="total" fill="var(--chart-primary)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -65,9 +83,9 @@ export function ReportCharts({
                 outerRadius={90}
                 paddingAngle={3}
               >
-                {statuses.map((item, index) => (
+                {statuses.map((item) => (
                   <Cell
-                    fill={colors[index % colors.length]}
+                    fill={statusColor(item.name)}
                     key={item.name}
                   />
                 ))}
@@ -77,11 +95,11 @@ export function ReportCharts({
           </ResponsiveContainer>
         </div>
         <div className="row chart-legend">
-          {statuses.map((item, index) => (
+          {statuses.map((item) => (
             <span className="small" key={item.name}>
               <i
                 className="legend-dot"
-                style={{ background: colors[index % colors.length] }}
+                style={{ background: statusColor(item.name) }}
               />
               {item.name}: {item.value}
             </span>
@@ -101,7 +119,7 @@ export function ReportCharts({
               <i
                 style={{
                   width: `${Math.max(8, (item.value / maximum) * 100)}%`,
-                  background: colors[index % colors.length],
+                  background: chartColors[index % chartColors.length],
                 }}
               />
             </div>
