@@ -2,19 +2,28 @@
 
 MVP funcional de gestión de consultorios para clínicas dentales y médicas en México. Reúne agenda, expediente, odontograma, presupuestos, caja, recordatorios y reportes con IA integrada en cada flujo. La interfaz está en español de México y todos los importes se muestran en MXN.
 
-## Inicio rápido (3 comandos)
+## Despliegue en Vercel
+
+1. Importa este repositorio de GitHub como un proyecto nuevo en Vercel.
+2. En el proyecto, abre **Storage**, crea una base de datos **Neon Postgres** y conéctala al proyecto. Vercel añadirá `DATABASE_URL` (conexión agrupada) y `DATABASE_URL_UNPOOLED` (conexión directa).
+3. Opcionalmente, añade `ANTHROPIC_API_KEY` en **Settings → Environment Variables** para usar Anthropic. Sin ella, las funciones de IA responden con datos demo deterministas. Puedes configurar `AI_MODEL`; el valor predeterminado es `claude-sonnet-5-5`.
+4. Despliega el proyecto. El script `vercel-build` genera Prisma Client, aplica las migraciones, carga los datos demo de forma segura y compila Next.js automáticamente.
+
+Al terminar, inicia sesión con `demo@clinika.mx` / `demo123`.
+
+## Desarrollo local
+
+Necesitas Node.js y una base de datos Neon —o cualquier PostgreSQL compatible— accesible desde tu equipo.
 
 ```bash
+cp .env.example .env
+# Sustituye DATABASE_URL y DATABASE_URL_UNPOOLED en .env por tus URLs de PostgreSQL.
 npm install
 npm run db:setup
 npm run dev
 ```
 
-Abre `http://localhost:3000` e ingresa con `demo@clinika.mx` / `demo123`.
-
-## Variables de entorno
-
-Copia `.env.example` a `.env`. `DATABASE_URL="file:./dev.db"` usa SQLite. Para Postgres basta cambiar `provider` a `postgresql` en `prisma/schema.prisma` y definir una URL de Postgres. `ANTHROPIC_API_KEY` es opcional: si no existe, todas las funciones IA responden con mocks deterministas. `AI_MODEL` usa `claude-sonnet-5-5` por defecto.
+Abre `http://localhost:3000` e ingresa con `demo@clinika.mx` / `demo123`. La carga demo es idempotente: si la base ya contiene una clínica, no modifica sus datos.
 
 ## Incluye
 
@@ -33,8 +42,9 @@ El odontograma registra pieza, superficie y condición; la vista compacta colore
 ## Scripts
 
 - `npm run dev`: servidor de desarrollo.
-- `npm run build`: build de producción.
-- `npm run db:setup`: crea/aplica la migración y carga datos demo.
+- `npm run build`: compilación de producción.
+- `npm run vercel-build`: migra, carga datos demo y compila en Vercel.
+- `npm run db:setup`: aplica las migraciones y carga datos demo.
 - `npm run lint`: ESLint.
 
 ## Roadmap

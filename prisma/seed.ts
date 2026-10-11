@@ -41,24 +41,13 @@ const lastNames = [
   "Sánchez",
 ];
 
-async function clearDatabase() {
-  await db.patientFile.deleteMany();
-  await db.odontogramFinding.deleteMany();
-  await db.clinicalNote.deleteMany();
-  await db.treatmentItem.deleteMany();
-  await db.treatmentPlan.deleteMany();
-  await db.payment.deleteMany();
-  await db.reminder.deleteMany();
-  await db.appointment.deleteMany();
-  await db.priceItem.deleteMany();
-  await db.patient.deleteMany();
-  await db.professional.deleteMany();
-  await db.user.deleteMany();
-  await db.clinic.deleteMany();
-}
-
 async function main() {
-  await clearDatabase();
+  const existingClinic = await db.clinic.findFirst({ select: { id: true } });
+
+  if (existingClinic) {
+    console.log("La base de datos ya contiene una clínica; se omite la carga demo.");
+    return;
+  }
 
   const clinic = await db.clinic.create({
     data: {
@@ -105,7 +94,9 @@ async function main() {
     },
   });
 
-  const professionals = await db.professional.findMany();
+  const professionals = await db.professional.findMany({
+    where: { clinicId: clinic.id },
+  });
   const patients = [];
 
   for (let index = 0; index < firstNames.length; index += 1) {

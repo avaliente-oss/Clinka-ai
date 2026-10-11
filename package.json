@@ -4,9 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "next build --webpack",
+    "build": "next build",
     "lint": "eslint .",
-    "db:setup": "prisma migrate dev --name init --skip-generate && prisma db seed"
+    "postinstall": "prisma generate",
+    "vercel-build": "prisma generate && prisma migrate deploy && prisma db seed && next build",
+    "db:setup": "prisma migrate deploy && prisma db seed"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.67.0",
