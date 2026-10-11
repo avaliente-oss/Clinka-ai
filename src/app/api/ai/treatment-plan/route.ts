@@ -1,0 +1,1 @@
+import{db}from"@/lib/db";import{proposePlan}from"@/lib/ai/treatment-plan";export async function POST(req:Request){const{context}=await req.json();const prices=await db.priceItem.findMany();return Response.json(await proposePlan(`${context}. Tarifario: ${JSON.stringify(prices.map(p=>({servicio:p.name,precio:p.price})))}`));}
