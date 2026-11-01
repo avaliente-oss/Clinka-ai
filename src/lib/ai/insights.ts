@@ -19,5 +19,6 @@ export async function businessInsights(context: string) {
         "Dar seguimiento amable a saldos mayores a $1,000.",
       ],
     },
+    { cacheSeconds: 60 * 60 }, // Caché de una hora: el contexto cambia cuando cambian los datos.
   );
 }

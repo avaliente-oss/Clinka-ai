@@ -1,6 +1,5 @@
-import { AIDisclaimer } from "@/components/ai-disclaimer";
 import { ReportCharts } from "@/components/report-charts";
-import { businessInsights } from "@/lib/ai/insights";
+import { InsightsBody } from "@/components/insights-body";
 import { db } from "@/lib/db";
 import { sumMoney } from "@/lib/money";
 import { statusLabel } from "@/lib/utils";
@@ -44,9 +43,7 @@ export default async function ReportsPage() {
     name: item.name,
     value: item._count,
   }));
-  const insights = await businessInsights(
-    JSON.stringify({ monthly, statuses, treatments }),
-  );
+  const insightsContext = JSON.stringify({ monthly, statuses, treatments });
 
   return (
     <>
@@ -61,15 +58,7 @@ export default async function ReportsPage() {
 
       <div className="card ai report-insight">
         <h3>Resumen ejecutivo IA</h3>
-        <p>{insights.summary}</p>
-        <div className="row recommendation-list">
-          {insights.recommendations.map((recommendation, index) => (
-            <span className="badge" key={recommendation}>
-              {index + 1}. {recommendation}
-            </span>
-          ))}
-        </div>
-        <AIDisclaimer />
+        <InsightsBody context={insightsContext} />
       </div>
 
       <ReportCharts

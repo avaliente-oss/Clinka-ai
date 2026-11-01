@@ -1,4 +1,6 @@
+import { createHash } from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
+import { unstable_cache } from "next/cache";
 import { z, type ZodType } from "zod";
 
 export const AI_MODEL = process.env.AI_MODEL || "claude-sonnet-5-5";
@@ -63,6 +65,16 @@ function schemaInstruction(schema: ZodType) {
   }
 }
 
+// Throws on any provider or validation error so callers decide on the fallback (and failures are never cached).
+async function runChat<T>(provider: Provider, system: string, messages: ChatMessage[], schema: ZodType<T>): Promise<T> {
+  const fullSystem = [system, JSON_ONLY, schemaInstruction(schema)].filter(Boolean).join("\n\n");
+  const text = provider === "openai"
+    ? await completeWithOpenAI(fullSystem, messages)
+    : await completeWithAnthropic(fullSystem, messages);
+  if (!text) throw new Error("Respuesta vacía del proveedor de IA.");
+  return schema.parse(JSON.parse(text) as unknown);
+}
+
 /** Multi-turn structured call: `system` holds instructions and context, `messages` the conversation. */
 export async function askAIChat<T>(
   system: string,
@@ -74,27 +86,40 @@ export async function askAIChat<T>(
   if (!provider) {
     return schema.parse(fallback);
   }
-
-  const fullSystem = [system, JSON_ONLY, schemaInstruction(schema)].filter(Boolean).join("\n\n");
-
   try {
-    const text = provider === "openai"
-      ? await completeWithOpenAI(fullSystem, messages)
-      : await completeWithAnthropic(fullSystem, messages);
-    if (!text) {
-      return schema.parse(fallback);
-    }
-    return schema.parse(JSON.parse(text) as unknown);
+    return await runChat(provider, system, messages, schema);
   } catch (error) {
     console.error(`La respuesta IA (${provider}) no fue válida; se usará el mock.`, error);
     return schema.parse(fallback);
   }
 }
 
+/**
+ * One-shot structured call. With `cacheSeconds`, identical prompts reuse the last valid answer for that long,
+ * so pages that render AI content don't wait on the provider on every visit.
+ */
 export async function askAI<T>(
   prompt: string,
   schema: ZodType<T>,
   fallback: T,
+  options: { cacheSeconds?: number } = {},
 ): Promise<T> {
-  return askAIChat("", [{ role: "user", content: prompt }], schema, fallback);
+  const provider = activeProvider();
+  if (!provider || !options.cacheSeconds) {
+    return askAIChat("", [{ role: "user", content: prompt }], schema, fallback);
+  }
+
+  const model = provider === "openai" ? OPENAI_MODEL : AI_MODEL;
+  const key = createHash("sha256").update(`${provider}\n${model}\n${prompt}`).digest("hex");
+  try {
+    const cached = await unstable_cache(
+      () => runChat(provider, "", [{ role: "user", content: prompt }], schema),
+      ["ai-answer", key],
+      { revalidate: options.cacheSeconds, tags: ["ai"] },
+    )();
+    return schema.parse(cached);
+  } catch (error) {
+    console.error(`La respuesta IA (${provider}) no fue válida; se usará el mock.`, error);
+    return schema.parse(fallback);
+  }
 }

@@ -30,5 +30,6 @@ export async function suggestSlots(context: string) {
         },
       ],
     },
+    { cacheSeconds: 60 * 30 }, // Caché de 30 minutos: la agenda cambia el contexto.
   );
 }

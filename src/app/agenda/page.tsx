@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { BrainCircuit, Clock3 } from "lucide-react";
+import { BrainCircuit } from "lucide-react";
 import { AIDisclaimer } from "@/components/ai-disclaimer";
 import {
   createAppointment,
   editAppointment,
   updateAppointmentStatus,
 } from "@/lib/actions";
-import { suggestSlots } from "@/lib/ai/smart-schedule";
+import { SmartSlots } from "@/components/smart-slots";
 import { db } from "@/lib/db";
 import { activeWhere } from "@/lib/soft-delete";
 import { AppointmentStatus } from "@prisma/client";
@@ -59,16 +59,14 @@ export default async function AgendaPage({
   const noShowsByPatient = new Map(
     pastNoShows.map((item) => [item.patientId, item._count]),
   );
-  const schedule = await suggestSlots(
-    JSON.stringify({
+  const scheduleContext = JSON.stringify({
       range: [selectedDate.toISOString(), endDate.toISOString()],
       appointments: appointments.map((appointment) => ({
         start: appointment.start,
         duration: appointment.duration,
         professional: appointment.professional.name,
       })),
-    }),
-  );
+    });
   const previous = new Date(selectedDate);
   const next = new Date(selectedDate);
   const currentTime = new Date().getTime();
@@ -342,21 +340,7 @@ export default async function AgendaPage({
             <p className="small">
               Sugerencias para una consulta de 30 minutos según la ocupación visible.
             </p>
-            {schedule.slots.map((slot, index) => (
-              <div className="listitem" key={slot.datetime}>
-                <span className="row">
-                  <Clock3 size={15} />
-                  <span>
-                    <b>{slot.datetime}</b>
-                    <span className="small block">{slot.reason}</span>
-                  </span>
-                </span>
-                <span className="badge">
-                  {index === 0 ? "Óptimo" : "Disponible"}
-                </span>
-              </div>
-            ))}
-            <AIDisclaimer />
+            <SmartSlots context={scheduleContext} />
           </div>
         </aside>
       </div>

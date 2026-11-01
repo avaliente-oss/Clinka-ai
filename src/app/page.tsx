@@ -6,8 +6,7 @@ import {
   Sparkles,
   TriangleAlert,
 } from "lucide-react";
-import { AIDisclaimer } from "@/components/ai-disclaimer";
-import { businessInsights } from "@/lib/ai/insights";
+import { InsightsBody } from "@/components/insights-body";
 import { db } from "@/lib/db";
 import { proceduresTotal, serializeMoney } from "@/lib/money";
 import { dateMx, money, statusLabel } from "@/lib/utils";
@@ -55,16 +54,14 @@ export default async function DashboardPage() {
   const confirmed = appointments.filter(
     (appointment) => appointment.status === AppointmentStatus.CONFIRMADA,
   ).length;
-  const insights = await businessInsights(
-    JSON.stringify({
+  const insightsContext = JSON.stringify({
       todayAppointments: appointments.length,
       confirmed,
       todayIncome: serializeMoney(payments._sum.amount ?? 0),
       monthNoShows: noShows,
       realizedTreatmentValue: serializeMoney(realizedValue),
       weeklyEvolutions,
-    }),
-  );
+    });
 
   return (
     <div className="page-stack">
@@ -171,13 +168,7 @@ export default async function DashboardPage() {
               <h2>Pulso de la semana</h2>
             </div>
           </div>
-          <p className="insight-summary">{insights.summary}</p>
-          <ol className="insight-list">
-            {insights.recommendations.map((recommendation) => (
-              <li key={recommendation}>{recommendation}</li>
-            ))}
-          </ol>
-          <AIDisclaimer />
+          <InsightsBody context={insightsContext} />
         </div>
       </section>
 

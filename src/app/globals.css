@@ -422,3 +422,10 @@ textarea.input { resize: vertical; }
 .chip:hover { border-color: var(--primary); }
 .chat-input { display: grid; grid-template-columns: minmax(0, 1fr) 36px; align-items: end; gap: 8px; }
 .chat-input textarea { min-height: 38px; max-height: 120px; resize: none; field-sizing: content; }
+.skeleton { border-radius: 6px; background: linear-gradient(90deg, var(--surface-subtle) 0%, var(--border) 50%, var(--surface-subtle) 100%); background-size: 200% 100%; animation: skeleton-shimmer 1.2s ease-in-out infinite; }
+.skeleton-line { height: 10px; margin: 6px 0; }
+.skeleton-title { width: 220px; height: 26px; margin: 8px 0; }
+.skeleton-value { width: 40%; height: 24px; margin-top: 14px; }
+.skeleton-row { height: 40px; margin-bottom: 10px; }
+@keyframes skeleton-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }

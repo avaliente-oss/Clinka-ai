@@ -1,8 +1,9 @@
+import { Suspense } from "react";
 import { MessageCircleMore } from "lucide-react";
 import { AIDisclaimer } from "@/components/ai-disclaimer";
 import { ReminderActions } from "@/components/reminder-actions";
 import { generateMessage } from "@/lib/ai/messages";
-import { ReminderStatus } from "@prisma/client";
+import { ReminderStatus, type ReminderType } from "@prisma/client";
 import { db } from "@/lib/db";
 import { dateMx, enumLabel } from "@/lib/utils";
 
@@ -13,17 +14,11 @@ export default async function RemindersPage() {
     where: { status: ReminderStatus.PENDIENTE, patient: { deletedAt: null } },
     include: {
       patient: true,
-      appointment: true,
+      appointment: { include: { professional: true } },
     },
     orderBy: { scheduledFor: "asc" },
   });
-  const generated = await Promise.all(
-    reminders.map(async (reminder) => {
-      const name = reminder.patient.firstName;
-      const result = await generateMessage(name, reminder.type);
-      return { ...reminder, generatedMessage: result.message };
-    }),
-  );
+  const generated = reminders;
 
   return (
     <>
@@ -66,15 +61,25 @@ export default async function RemindersPage() {
               </div>
               <span className="badge">Pendiente</span>
             </div>
-            <p className="message-preview">{reminder.generatedMessage}</p>
-            <div className="row between reminder-footer">
-              <AIDisclaimer />
-              <ReminderActions
+            <Suspense
+              fallback={
+                <div aria-busy="true" aria-label="Redactando mensaje">
+                  <div className="skeleton skeleton-row" />
+                </div>
+              }
+            >
+              <ReminderMessage
+                name={reminder.patient.firstName}
                 phone={reminder.patient.phone}
-                message={reminder.generatedMessage}
                 reminderId={reminder.id}
+                type={reminder.type}
+                details={
+                  reminder.appointment
+                    ? `${dateMx(reminder.appointment.start, { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })} con ${reminder.appointment.professional.name} (${reminder.appointment.reason})`
+                    : undefined
+                }
               />
-            </div>
+            </Suspense>
           </article>
         ))}
         {!generated.length && (
@@ -82,6 +87,32 @@ export default async function RemindersPage() {
             <p className="small">No hay recordatorios pendientes.</p>
           </div>
         )}
+      </div>
+    </>
+  );
+}
+
+// Each message streams in on its own, so the list renders immediately.
+async function ReminderMessage({
+  name,
+  phone,
+  reminderId,
+  type,
+  details,
+}: {
+  name: string;
+  phone: string;
+  reminderId: string;
+  type: ReminderType;
+  details?: string;
+}) {
+  const { message } = await generateMessage(name, enumLabel[type] ?? type, details);
+  return (
+    <>
+      <p className="message-preview">{message}</p>
+      <div className="row between reminder-footer">
+        <AIDisclaimer />
+        <ReminderActions phone={phone} message={message} reminderId={reminderId} />
       </div>
     </>
   );
