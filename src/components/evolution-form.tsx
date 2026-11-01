@@ -86,9 +86,9 @@ export function EvolutionForm({
           <input className="input line-description" aria-label="Nombre" placeholder="Prestación" value={procedure.name} onChange={(event) => update(index, { name: event.target.value })} required />
           <input className="input" aria-label="Pieza" placeholder="Pieza" value={procedure.tooth} onChange={(event) => update(index, { tooth: event.target.value })} />
           <SurfaceSelector value={procedure.surfaces} onChange={(surfaces) => update(index, { surfaces })} />
-          <input className="input" type="number" min="1" aria-label="Cantidad" value={procedure.quantity} onChange={(event) => update(index, { quantity: Number(event.target.value) })} />
-          <input className="input" type="number" min="0" step="0.01" aria-label="Precio" value={procedure.price} onChange={(event) => update(index, { price: event.target.value })} />
-          <input className="input" type="number" min="0" step="0.01" aria-label="Descuento" placeholder="Descuento" value={procedure.discount} onChange={(event) => update(index, { discount: event.target.value })} />
+          <label className="mini-field"><span>Cantidad</span><input className="input" type="number" min="1" aria-label="Cantidad" value={procedure.quantity} onChange={(event) => update(index, { quantity: Number(event.target.value) })} /></label>
+          <label className="mini-field"><span>Precio</span><input className="input" type="number" min="0" step="0.01" aria-label="Precio" value={procedure.price} onChange={(event) => update(index, { price: event.target.value })} /></label>
+          <label className="mini-field"><span>Descuento</span><input className="input" type="number" min="0" step="0.01" aria-label="Descuento" placeholder="Descuento" value={procedure.discount} onChange={(event) => update(index, { discount: event.target.value })} /></label>
           <button className="btn danger" type="button" onClick={() => setNewProcedures((current) => current.filter((_, itemIndex) => itemIndex !== index))} aria-label="Eliminar prestación"><Trash2 size={14} /></button>
         </div>)}
       </div>

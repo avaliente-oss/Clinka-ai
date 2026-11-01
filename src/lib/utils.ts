@@ -2,7 +2,7 @@ export const money = (value: { toString(): string } | string | number) =>
   new Intl.NumberFormat("es-MX", {
     style: "currency",
     currency: "MXN",
-    minimumFractionDigits: 2,
+    minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(Number(value.toString()));
 

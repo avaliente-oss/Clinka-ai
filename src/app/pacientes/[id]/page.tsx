@@ -1,9 +1,12 @@
 import { Activity, Mail, Phone } from "lucide-react";
 import { notFound } from "next/navigation";
+import { BalanceValue } from "@/components/balance-value";
+import { DeleteTreatmentButton } from "@/components/delete-treatment-button";
 import { AIScribe } from "@/components/ai-scribe";
 import { EvolutionForm } from "@/components/evolution-form";
 import { Odontogram } from "@/components/odontogram";
 import { PatientCopilot } from "@/components/patient-copilot";
+import { PatientTabs } from "@/components/patient-tabs";
 import { TreatmentForm } from "@/components/treatment-form";
 import { addPatientFile, updateTreatmentStatus } from "@/lib/actions";
 import { db } from "@/lib/db";
@@ -54,9 +57,17 @@ export default async function PatientPage({
     sum.plus(proceduresTotal(treatment.procedures.filter((procedure) => procedure.status === ProcedureStatus.REALIZADA))), addMoney());
   const paidTotal = sumMoney(patient.payments, (payment) => payment.amount);
   const balance = subtractMoney(treatmentTotal, paidTotal);
+  const tabs = [
+    { id: "datos", label: "Datos" },
+    { id: "historia", label: "Historia clínica" },
+    ...(patient.type === PatientType.DENTAL ? [{ id: "odontograma", label: "Odontograma" }] : []),
+    { id: "tratamientos", label: "Tratamientos" },
+    { id: "pagos", label: "Pagos" },
+    { id: "archivos", label: "Archivos" },
+  ];
 
   return (
-    <>
+    <div className="page-stack">
       <div className="pagehead">
         <div className="row">
           <span className="avatar patient-avatar">
@@ -89,32 +100,12 @@ export default async function PatientPage({
         </span>
       </div>
 
-      <nav className="tabs" aria-label="Secciones del expediente">
-        <a className="tab active" href="#datos">
-          Datos
-        </a>
-        <a className="tab" href="#historia">
-          Historia clínica
-        </a>
-        {patient.type === PatientType.DENTAL && (
-          <a className="tab" href="#odontograma">
-            Odontograma
-          </a>
-        )}
-        <a className="tab" href="#tratamientos">
-          Tratamientos
-        </a>
-        <a className="tab" href="#pagos">
-          Pagos
-        </a>
-        <a className="tab" href="#archivos">
-          Archivos
-        </a>
-      </nav>
+      <PatientTabs tabs={tabs} />
 
-      <div className="grid two patient-layout">
-        <main className="grid">
-          <section className="card" id="datos">
+      <div className="grid-2 patient-layout">
+        <main className="patient-panel-stack">
+          <section aria-labelledby="tab-datos" data-patient-panel id="datos" role="tabpanel" tabIndex={0}>
+            <div className="card">
             <h2>Resumen clínico</h2>
             <div className="grid three">
               <Info
@@ -134,13 +125,14 @@ export default async function PatientPage({
                 label="Antecedentes"
                 value={patient.conditions || "Sin registro"}
               />
-              <Info label="Saldo pendiente" value={money(balance)} />
+              <Info label="Saldo pendiente" value={<BalanceValue value={balance} />} />
             </div>
+            </div>
+            <AIScribe patientId={patient.id} />
           </section>
 
-          <section id="historia">
-            <AIScribe patientId={patient.id} />
-            <div className="card section-gap">
+          <section aria-labelledby="tab-historia" data-patient-panel hidden id="historia" role="tabpanel" tabIndex={0}>
+            <div className="card">
               <h2>Historia clínica · notas SOAP</h2>
               {patient.notes.length ? (
                 patient.notes.map((note) => (
@@ -178,7 +170,7 @@ export default async function PatientPage({
           </section>
 
           {patient.type === PatientType.DENTAL && (
-            <section id="odontograma">
+            <section aria-labelledby="tab-odontograma" data-patient-panel hidden id="odontograma" role="tabpanel" tabIndex={0}>
               <Odontogram
                 patientId={patient.id}
                 findings={patient.odontogram}
@@ -186,13 +178,13 @@ export default async function PatientPage({
             </section>
           )}
 
-          <section className="card" id="tratamientos">
-            <div className="row between"><h2>Tratamientos</h2><details><summary className="btn primary">Nuevo tratamiento</summary><div className="modal-like"><TreatmentForm
+          <section aria-labelledby="tab-tratamientos" className="card" data-patient-panel hidden id="tratamientos" role="tabpanel" tabIndex={0}>
+            <details className="panel-header-form"><summary className="row between"><h2>Tratamientos</h2><span className="btn primary">Nuevo tratamiento</span></summary><div className="modal-like"><TreatmentForm
               patients={[{ id: patient.id, name: `${patient.firstName} ${patient.lastName}` }]}
               professionals={professionals.map((item) => ({ id: item.id, name: item.name }))}
               prices={prices.map((item) => ({ id: item.id, name: item.name, price: serializeMoney(item.price) }))}
               patientId={patient.id}
-            /></div></details></div>
+            /></div></details>
             {patient.treatments.length ? (
               patient.treatments.map((treatment) => {
                 const plannedTotal = proceduresTotal(treatment.procedures);
@@ -201,6 +193,9 @@ export default async function PatientPage({
                 const treatmentBalance = subtractMoney(realizedTotal, paidTotal);
                 const progress = treatment.evolutions.at(-1)?.cumulativeProgress ?? 0;
                 const pending = treatment.procedures.filter((procedure) => procedure.status === ProcedureStatus.PLANIFICADA);
+                const deleteBlockedReason = treatment.evolutions.length || treatment.procedures.some((procedure) => procedure.status === ProcedureStatus.REALIZADA) || treatment.payments.length
+                  ? "Tiene evoluciones, prestaciones realizadas o pagos; márcalo como suspendido."
+                  : undefined;
                 return (
                 <details className="treatment-card" key={treatment.id} id={`tratamiento-${treatment.id}`}>
                   <summary className="details-summary">
@@ -214,13 +209,14 @@ export default async function PatientPage({
                     <span className="small">Responsable: {treatment.responsibleProfessional.name}</span>
                   </div>
                   <div className="progress"><span style={{ width: `${progress}%` }} /></div>
-                  <div className="row between small"><b>{progress}% de avance</b><span>Total {money(plannedTotal)} · Realizado {money(realizedTotal)} · Pagado {money(paidTotal)} · Saldo {money(treatmentBalance)}</span></div>
+                  <div className="row between small"><b>{progress}% de avance</b><span className="row treatment-totals"><span>Total {money(plannedTotal)} · Realizado {money(realizedTotal)} · Pagado {money(paidTotal)} · Saldo</span><BalanceValue value={treatmentBalance} /></span></div>
                   </summary>
                   <div className="treatment-detail">
                     {treatment.diagnosis && <p><b>Diagnóstico / motivo:</b> {treatment.diagnosis}</p>}
                     {treatment.notes && <p className="small">{treatment.notes}</p>}
                     <p className="notice">Saldo = prestaciones realizadas netas − pagos ligados a este tratamiento.</p>
                     <form action={updateTreatmentStatus} className="row"><input type="hidden" name="id" value={treatment.id} /><label className="small" htmlFor={`status-${treatment.id}`}>Estado</label><select id={`status-${treatment.id}`} className="input" name="status" defaultValue={treatment.status}>{["PLANIFICADO", "EN_CURSO", "TERMINADO", "SUSPENDIDO"].map((status) => <option value={status} key={status}>{statusLabel[status]}</option>)}</select><button className="btn">Guardar estado</button></form>
+                    <div className="row treatment-actions"><DeleteTreatmentButton id={treatment.id} title={treatment.title} blockedReason={deleteBlockedReason} />{deleteBlockedReason && <span className="small">{deleteBlockedReason}</span>}</div>
                     <h3>Evoluciones</h3>
                     {treatment.evolutions.length ? <ol className="timeline">{treatment.evolutions.map((evolution, index) => <li key={evolution.id}>
                       <div className="row between"><b>Sesión {index + 1} · {dateMx(evolution.date)}</b><span className="badge">Avance {evolution.cumulativeProgress}%</span></div>
@@ -249,10 +245,10 @@ export default async function PatientPage({
             )}
           </section>
 
-          <section className="card" id="pagos">
+          <section aria-labelledby="tab-pagos" className="card" data-patient-panel hidden id="pagos" role="tabpanel" tabIndex={0}>
             <div className="row between">
               <h2>Pagos</h2>
-              <span className="badge">Saldo {money(balance)}</span>
+              <BalanceValue value={balance} />
             </div>
             {patient.payments.length ? (
               patient.payments.map((payment) => (
@@ -262,7 +258,7 @@ export default async function PatientPage({
                     {payment.reference ? " · " + payment.reference : ""}
                     {payment.treatmentId ? " · aplicado a tratamiento" : ""}
                   </span>
-                  <b>{money(payment.amount)}</b>
+                  <b className="payment-amount">{money(payment.amount)}</b>
                 </div>
               ))
             ) : (
@@ -270,7 +266,7 @@ export default async function PatientPage({
             )}
           </section>
 
-          <section className="card" id="archivos">
+          <section aria-labelledby="tab-archivos" className="card" data-patient-panel hidden id="archivos" role="tabpanel" tabIndex={0}>
             <h2>Archivos · metadatos</h2>
             {patient.files.length ? (
               patient.files.map((file) => (
@@ -316,15 +312,15 @@ export default async function PatientPage({
           </section>
         </main>
 
-        <aside>
+        <aside className="patient-aside">
           <PatientCopilot patientId={patient.id} />
         </aside>
       </div>
-    </>
+    </div>
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) {
+function Info({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
       <div className="small">{label}</div>

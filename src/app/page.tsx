@@ -11,7 +11,7 @@ import { businessInsights } from "@/lib/ai/insights";
 import { db } from "@/lib/db";
 import { proceduresTotal, serializeMoney } from "@/lib/money";
 import { dateMx, money, statusLabel } from "@/lib/utils";
-import { AppointmentStatus, ProcedureStatus } from "@prisma/client";
+import { AppointmentStatus, ProcedureStatus, TreatmentStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +24,7 @@ export default async function DashboardPage() {
   const weekStart = new Date(today);
   weekStart.setDate(today.getDate() - 6);
 
-  const [appointments, payments, noShows, realizedProcedures, weeklyEvolutions] = await Promise.all([
+  const [appointments, payments, noShows, realizedProcedures, weeklyEvolutions, activeTreatments] = await Promise.all([
     db.appointment.findMany({
       where: { start: { gte: today, lt: tomorrow }, patient: { deletedAt: null } },
       include: { patient: true, professional: true },
@@ -39,6 +39,16 @@ export default async function DashboardPage() {
     }),
     db.procedure.findMany({ where: { status: ProcedureStatus.REALIZADA, treatment: { deletedAt: null, patient: { deletedAt: null } } }, select: { price: true, quantity: true, discount: true } }),
     db.evolution.count({ where: { date: { gte: weekStart }, deletedAt: null, treatment: { deletedAt: null } } }),
+    db.treatment.findMany({
+      where: { status: TreatmentStatus.EN_CURSO, deletedAt: null, patient: { deletedAt: null } },
+      include: {
+        patient: true,
+        responsibleProfessional: true,
+        evolutions: { where: { deletedAt: null }, orderBy: [{ date: "desc" }, { createdAt: "desc" }], take: 1 },
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 6,
+    }),
   ]);
   const realizedValue = proceduresTotal(realizedProcedures);
 
@@ -57,7 +67,7 @@ export default async function DashboardPage() {
   );
 
   return (
-    <>
+    <div className="page-stack">
       <div className="pagehead">
         <div>
           <div className="eyebrow">
@@ -77,7 +87,7 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      <section className="grid kpis">
+      <section className="grid-kpi">
         <Kpi
           icon={<CalendarCheck />}
           label="Citas de hoy"
@@ -106,7 +116,7 @@ export default async function DashboardPage() {
         />
       </section>
 
-      <section className="grid two section-gap">
+      <section className="grid-2">
         <div className="card">
           <div className="row between">
             <h2>Agenda de hoy</h2>
@@ -170,7 +180,34 @@ export default async function DashboardPage() {
           <AIDisclaimer />
         </div>
       </section>
-    </>
+
+      {activeTreatments.length > 0 && (
+        <section className="card">
+          <div className="row between">
+            <div>
+              <h2>Tratamientos en curso</h2>
+              <p className="small">Seguimientos clínicos actualizados recientemente</p>
+            </div>
+            <Link href="/tratamientos" className="small">Ver todos →</Link>
+          </div>
+          <div className="grid dashboard-treatments">
+            {activeTreatments.map((treatment) => {
+              const progress = treatment.evolutions[0]?.cumulativeProgress ?? 0;
+              return (
+                <Link className="dashboard-treatment" href={`/pacientes/${treatment.patientId}#tratamiento-${treatment.id}`} key={treatment.id}>
+                  <div className="row between">
+                    <b>{treatment.title}</b>
+                    <span className="small">{progress}%</span>
+                  </div>
+                  <div className="progress"><span style={{ width: `${progress}%` }} /></div>
+                  <span className="small">{treatment.patient.firstName} {treatment.patient.lastName} · {treatment.responsibleProfessional.name}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
+    </div>
   );
 }
 

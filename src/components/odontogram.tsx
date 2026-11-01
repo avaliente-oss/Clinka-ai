@@ -10,9 +10,21 @@ type Finding = {
   notes?: string | null;
 };
 
-const teeth = [
-  18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28,
-  48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38,
+const arches = [
+  {
+    label: "Arcada superior",
+    quadrants: [
+      [18, 17, 16, 15, 14, 13, 12, 11],
+      [21, 22, 23, 24, 25, 26, 27, 28],
+    ],
+  },
+  {
+    label: "Arcada inferior",
+    quadrants: [
+      [48, 47, 46, 45, 44, 43, 42, 41],
+      [31, 32, 33, 34, 35, 36, 37, 38],
+    ],
+  },
 ];
 
 const surfaces = [
@@ -57,32 +69,43 @@ export function Odontogram({
         </div>
       </div>
 
-      <div className="toothgrid">
-        {teeth.map((tooth) => {
-          const toothFindings = findings.filter((item) => item.tooth === tooth);
-          return (
-            <button
-              key={tooth}
-              type="button"
-              onClick={() => setSelected(tooth)}
-              className={`tooth ${toothFindings.length ? "marked" : ""}`}
-              aria-label={`Pieza ${tooth}, ${toothFindings.length} hallazgos`}
-            >
-              <svg viewBox="0 0 40 40" width="30" aria-hidden="true">
-                <path
-                  d="M9 7 Q20 1 31 7 Q36 16 31 31 Q25 38 20 30 Q15 38 9 31 Q4 16 9 7Z"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                />
-              </svg>
-              <span>{tooth}</span>
-              {toothFindings.length > 0 && (
-                <small>{toothFindings.map((item) => item.surface).join("·")}</small>
-              )}
-            </button>
-          );
-        })}
+      <div className="odontogram-scroll">
+        <div className="tooth-arches">
+          {arches.map((arch) => (
+            <div className="tooth-arch" role="group" aria-label={arch.label} key={arch.label}>
+              {arch.quadrants.map((quadrant) => (
+                <div className="tooth-quadrant" key={quadrant[0]}>
+                  {quadrant.map((tooth) => {
+                    const toothFindings = findings.filter((item) => item.tooth === tooth);
+                    return (
+                      <button
+                        key={tooth}
+                        type="button"
+                        onClick={() => setSelected(tooth)}
+                        className={`tooth ${toothFindings.length ? "marked" : ""} ${selected === tooth ? "selected" : ""}`}
+                        aria-label={`Pieza ${tooth}, ${toothFindings.length} hallazgos`}
+                        aria-pressed={selected === tooth}
+                      >
+                        <svg viewBox="0 0 40 40" aria-hidden="true">
+                          <path
+                            d="M9 7 Q20 1 31 7 Q36 16 31 31 Q25 38 20 30 Q15 38 9 31 Q4 16 9 7Z"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          />
+                        </svg>
+                        <span>{tooth}</span>
+                        {toothFindings.length > 0 && (
+                          <small>{toothFindings.map((item) => item.surface).join("·")}</small>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
 
       {selected && (

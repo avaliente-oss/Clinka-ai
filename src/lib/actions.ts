@@ -263,6 +263,37 @@ export async function updateTreatmentStatus(form: FormData) {
   revalidatePath(`/pacientes/${treatment.patientId}`);
 }
 
+export async function deleteTreatment(form: FormData) {
+  const userId = await getSessionUserId();
+  const treatment = await db.treatment.findFirstOrThrow({
+    where: activeWhere({ id: required(form, "id") }),
+    include: {
+      _count: {
+        select: {
+          evolutions: { where: activeWhere() },
+          procedures: { where: { status: ProcedureStatus.REALIZADA } },
+          payments: true,
+        },
+      },
+    },
+  });
+
+  // Clinical history and money must stay traceable: only plans without activity can be removed.
+  const { evolutions, procedures, payments } = treatment._count;
+  if (evolutions || procedures || payments) {
+    throw new Error(
+      "No se puede eliminar un tratamiento con evoluciones, prestaciones realizadas o pagos. Márcalo como suspendido.",
+    );
+  }
+
+  await db.treatment.update({
+    where: { id: treatment.id },
+    data: { deletedAt: new Date(), updatedById: userId },
+  });
+  revalidatePath("/tratamientos");
+  revalidatePath(`/pacientes/${treatment.patientId}`);
+}
+
 export async function registerEvolution(form: FormData) {
   const userId = await getSessionUserId();
   const treatmentId = required(form, "treatmentId");

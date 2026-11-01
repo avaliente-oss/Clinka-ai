@@ -85,7 +85,7 @@ export default async function AgendaPage({
   }
 
   return (
-    <>
+    <div className="page-stack">
       <div className="pagehead">
         <div>
           <div className="eyebrow">Operación clínica</div>
@@ -152,7 +152,7 @@ export default async function AgendaPage({
         <button className="btn">Aplicar vista</button>
       </form>
 
-      <div className="grid two section-gap">
+      <div className="grid-2">
         <div className="card">
           <h2>Citas del periodo</h2>
           <p className="small">
@@ -195,7 +195,7 @@ export default async function AgendaPage({
                         {appointment.patient.firstName[0]}
                         {appointment.patient.lastName[0]}
                       </span>
-                      <div>
+                      <div className="appointment-patient">
                         <b>
                           {appointment.patient.firstName}{" "}
                           {appointment.patient.lastName}
@@ -360,7 +360,7 @@ export default async function AgendaPage({
           </div>
         </aside>
       </div>
-    </>
+    </div>
   );
 }
 
