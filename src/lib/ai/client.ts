@@ -9,7 +9,7 @@ const SYSTEM_PROMPT = "Responde exclusivamente con JSON válido, sin Markdown.";
 type Provider = "anthropic" | "openai";
 
 // AI_PROVIDER forces a provider; otherwise the first configured key wins (Anthropic, then OpenAI).
-function activeProvider(): Provider | null {
+export function activeProvider(): Provider | null {
   const forced = process.env.AI_PROVIDER;
   if (forced === "openai" && process.env.OPENAI_API_KEY) return "openai";
   if (forced === "anthropic" && process.env.ANTHROPIC_API_KEY) return "anthropic";

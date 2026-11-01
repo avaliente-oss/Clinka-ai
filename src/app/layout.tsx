@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import { Bell, Search } from "lucide-react";
 import { Sidebar } from "@/components/sidebar";
+import { activeProvider } from "@/lib/ai/client";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -49,6 +50,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </div>
               </div>
             </header>
+            {!activeProvider() && (
+              <div className="ai-demo-banner" role="status">
+                <b>IA en modo demostración.</b> Las respuestas de IA son ejemplos fijos porque no hay una llave de IA
+                configurada (OPENAI_API_KEY o ANTHROPIC_API_KEY).
+              </div>
+            )}
             <main className="main">{children}</main>
           </div>
         </div>
