@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { patientAnswer } from "@/lib/ai/copilot";
 import { db } from "@/lib/db";
-import { proceduresTotal } from "@/lib/money";
+import { addMoney, proceduresTotal, subtractMoney, sumMoney, type MoneyValue } from "@/lib/money";
 import { activeWhere } from "@/lib/soft-delete";
-import { dateMx, money } from "@/lib/utils";
+import { dateMx, enumLabel, money, statusLabel } from "@/lib/utils";
 import { ProcedureStatus } from "@prisma/client";
 
 const RequestSchema = z.object({
@@ -17,23 +17,72 @@ export async function POST(request: Request) {
     where: activeWhere({ id: patientId }),
     include: {
       notes: { where: activeWhere(), orderBy: { date: "desc" }, take: 8 },
-      treatments: { where: activeWhere(), include: { procedures: true, evolutions: { where: activeWhere(), orderBy: { date: "desc" }, take: 1 } } },
+      treatments: {
+        where: activeWhere(),
+        include: {
+          procedures: true,
+          payments: true,
+          evolutions: { where: activeWhere(), orderBy: { date: "asc" }, include: { professional: true } },
+        },
+      },
       payments: { orderBy: { date: "desc" } },
       odontogram: true,
     },
   });
   const latestNote = patient.notes[0];
-  const record = {
-    patient: {
-      name: patient.firstName + " " + patient.lastName,
-      allergies: patient.allergies,
-      conditions: patient.conditions,
-    },
-    notes: patient.notes,
-    odontogram: patient.odontogram,
-    treatments: patient.treatments,
-    payments: patient.payments,
+
+  // Balance: amounts are computed here with the same helpers as the UI; the model must never do math.
+  const balanceText = (value: MoneyValue) => {
+    const amount = subtractMoney(value, 0);
+    return amount.isNegative() ? `${money(amount.abs())} a favor del paciente` : money(amount);
   };
+  const realizedAll = patient.treatments.reduce(
+    (sum, treatment) =>
+      sum.plus(proceduresTotal(treatment.procedures.filter((procedure) => procedure.status === ProcedureStatus.REALIZADA))),
+    addMoney(),
+  );
+  const paidAll = sumMoney(patient.payments, (payment) => payment.amount);
+
+  const lines = [
+    `Paciente: ${patient.firstName} ${patient.lastName}`,
+    `Datos del paciente · Alergias: ${patient.allergies || "sin registro"}`,
+    `Datos del paciente · Antecedentes: ${patient.conditions || "sin registro"}`,
+    `Saldo total del paciente (prestaciones realizadas ${money(realizedAll)} − pagos ${money(paidAll)}): ${balanceText(subtractMoney(realizedAll, paidAll))}`,
+    "",
+    "Notas clínicas:",
+    ...(patient.notes.length
+      ? patient.notes.map((note) =>
+          `- Nota clínica del ${dateMx(note.date)}: S: ${note.subjective} | O: ${note.objective} | A: ${note.assessment} | P: ${note.plan}${note.diagnoses ? ` | Diagnósticos: ${note.diagnoses}` : ""}`)
+      : ["- Sin notas clínicas."]),
+    "",
+    "Tratamientos:",
+    ...(patient.treatments.length
+      ? patient.treatments.flatMap((treatment) => {
+          const realized = proceduresTotal(treatment.procedures.filter((procedure) => procedure.status === ProcedureStatus.REALIZADA));
+          const planned = proceduresTotal(treatment.procedures);
+          const paid = sumMoney(treatment.payments, (payment) => payment.amount);
+          const progress = treatment.evolutions.at(-1)?.cumulativeProgress ?? 0;
+          return [
+            `- Tratamiento ${treatment.title} (${statusLabel[treatment.status]}, avance ${progress}%, inicio ${dateMx(treatment.startDate)})${treatment.diagnosis ? `. Diagnóstico: ${treatment.diagnosis}` : ""}. Total planificado ${money(planned)}, realizado ${money(realized)}, pagado ${money(paid)}, saldo ${balanceText(subtractMoney(realized, paid))}.`,
+            ...treatment.evolutions.map((evolution, index) =>
+              `  - Evolución del ${dateMx(evolution.date)} · ${treatment.title} (sesión ${index + 1}, avance ${evolution.cumulativeProgress}%, ${evolution.professional.name}): ${evolution.clinicalNotes}`),
+            ...treatment.procedures.map((procedure) =>
+              `  - Prestación ${procedure.name}${procedure.tooth ? ` pieza ${procedure.tooth}` : ""}: ${statusLabel[procedure.status]}`),
+          ];
+        })
+      : ["- Sin tratamientos."]),
+    "",
+    "Pagos:",
+    ...(patient.payments.length
+      ? patient.payments.map((payment) => `- Pago del ${dateMx(payment.date)}: ${money(payment.amount)} (${enumLabel[payment.method] ?? payment.method})`)
+      : ["- Sin pagos."]),
+    "",
+    "Odontograma:",
+    ...(patient.odontogram.length
+      ? patient.odontogram.map((finding) => `- Pieza ${finding.tooth} ${enumLabel[finding.surface] ?? finding.surface}: ${enumLabel[finding.condition] ?? finding.condition}`)
+      : ["- Sin hallazgos."]),
+  ];
+  const record = lines.join("\n");
 
   let fallback = {
     answer:
@@ -58,7 +107,7 @@ export async function POST(request: Request) {
     fallback = {
       answer:
         "El expediente contiene el tratamiento “" + treatment.title +
-        "”, con " + (treatment.evolutions[0]?.cumulativeProgress ?? 0) +
+        "”, con " + (treatment.evolutions.at(-1)?.cumulativeProgress ?? 0) +
         "% de avance y " + money(realized) + " en prestaciones realizadas.",
       citations: ["Tratamiento clínico"],
     };
@@ -66,7 +115,7 @@ export async function POST(request: Request) {
 
   const answer = await patientAnswer(
     question,
-    JSON.stringify(record),
+    record,
     fallback,
   );
   return Response.json(answer);
