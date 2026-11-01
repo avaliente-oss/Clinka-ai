@@ -144,10 +144,10 @@ textarea.input { resize: vertical; }
   border: 1px solid color-mix(in srgb, var(--primary) 20%, var(--border)); border-radius: 999px;
   background: var(--primary-soft); color: var(--primary); font-size: 10px; font-weight: 600; line-height: 1.2;
 }
-.badge.CONFIRMADA, .badge.ATENDIDA, .badge.ACEPTADO, .badge.TERMINADO {
+.badge.CONFIRMADA, .badge.ATENDIDA, .badge.ACEPTADO, .badge.TERMINADO, .badge.REALIZADA {
   background: var(--success-soft); border-color: color-mix(in srgb, var(--success) 35%, var(--border)); color: var(--success-text);
 }
-.badge.NO_ASISTIO, .badge.CANCELADA, .badge.RECHAZADO {
+.badge.NO_ASISTIO, .badge.CANCELADA, .badge.RECHAZADO, .badge.SUSPENDIDO {
   background: var(--danger-soft); border-color: color-mix(in srgb, var(--danger) 35%, var(--border)); color: var(--danger-text);
 }
 .badge.EN_CURSO, .badge.PENDIENTE {
@@ -188,7 +188,7 @@ textarea.input { resize: vertical; }
 .chat { height: 210px; padding: 12px; overflow: auto; background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 7px; }
 .bubble { max-width: 88%; margin-bottom: 10px; padding: 10px; background: var(--surface-raised); border: 1px solid var(--border); border-radius: 7px 7px 7px 2px; font-size: 13px; }
 .progress { height: 7px; overflow: hidden; background: var(--surface-subtle); border-radius: 4px; }
-.progress > i { display: block; height: 100%; background: var(--primary); border-radius: inherit; }
+.progress > i, .progress > span { display: block; height: 100%; background: var(--primary); border-radius: inherit; }
 
 .mobilebar, .mobile-menu-button, .sidebar-backdrop { display: none; }
 .search { max-width: 320px; }
@@ -250,8 +250,19 @@ textarea.input { resize: vertical; }
 .tooth small { position: absolute; right: 2px; bottom: 1px; color: var(--warning-text); font-size: 7px; }
 .odontogram-editor { display: grid; grid-template-columns: minmax(160px, .6fr) 1.4fr; gap: 16px; padding-top: 16px; margin-top: 16px; border-top: 1px solid var(--border); }
 .surface-summary { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.budget-form { margin-top: 16px; }
-.budget-line { display: grid; grid-template-columns: minmax(180px, 2fr) 80px 68px 80px 110px auto; gap: 8px; margin-top: 8px; }
+.treatment-form, .evolution-form { margin-top: 16px; }
+.procedure-line { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(180px, 1.5fr) 72px 72px 72px 100px auto; gap: 8px; margin-top: 8px; }
+.filterbar { display: flex; align-items: end; gap: 12px; }
+.filterbar .field { min-width: 200px; }
+.treatment-card > summary { display: grid; gap: 10px; }
+.treatment-detail { padding: 16px 0 8px; }
+.treatment-detail .input { width: auto; }
+.timeline { display: grid; gap: 12px; padding-left: 24px; }
+.timeline > li { padding: 12px 14px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface-subtle); }
+.timeline p { margin: 8px 0; }
+.procedure-checklist { display: grid; gap: 8px; padding: 14px; border: 1px solid var(--border); border-radius: 7px; }
+.procedure-checklist legend { padding: 0 6px; color: var(--text-muted); font-size: 12px; font-weight: 600; }
+.modal-like { margin-top: 12px; padding: 16px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface-raised); }
 .summary-value { font-size: 22px; font-weight: 600; letter-spacing: -.03em; }
 .message-preview { padding: 14px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface-subtle); line-height: 1.55; }
 .reminder-footer .ai-label { margin-top: 0; }
@@ -267,7 +278,7 @@ textarea.input { resize: vertical; }
 @media (max-width: 1100px) {
   .kpis { grid-template-columns: repeat(2, 1fr); }
   .appointment { grid-template-columns: 1fr; }
-  .budget-line { grid-template-columns: 2fr 1fr 1fr; }
+  .procedure-line { grid-template-columns: 2fr 2fr 1fr 1fr; }
 }
 @media (max-width: 900px) {
   .sidebar {
@@ -289,7 +300,8 @@ textarea.input { resize: vertical; }
 }
 @media (max-width: 700px) {
   .agenda-filter, .odontogram-editor { grid-template-columns: 1fr; }
-  .budget-line { grid-template-columns: 1fr 1fr; }
+  .procedure-line { grid-template-columns: 1fr 1fr; }
+  .filterbar { align-items: stretch; flex-direction: column; }
   .line-description { grid-column: 1 / -1; }
   .reminder-header, .reminder-footer { align-items: flex-start; flex-direction: column; }
 }

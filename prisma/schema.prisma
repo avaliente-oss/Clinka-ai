@@ -8,13 +8,13 @@ datasource db {
 }
 
 model Clinic {
-  id            String          @id @default(cuid())
+  id            String         @id @default(cuid())
   name          String
   users         User[]
   professionals Professional[]
   patients      Patient[]
   appointments  Appointment[]
-  treatments    TreatmentPlan[]
+  treatments    Treatment[]
   payments      Payment[]
   reminders     Reminder[]
   prices        PriceItem[]
@@ -38,29 +38,31 @@ model Professional {
   clinic       Clinic         @relation(fields: [clinicId], references: [id])
   appointments Appointment[]
   notes        ClinicalNote[]
+  treatments   Treatment[]
+  evolutions   Evolution[]
 }
 
 model Patient {
-  id           String               @id @default(cuid())
+  id           String              @id @default(cuid())
   firstName    String
   lastName     String
   phone        String
   email        String?
   birthDate    DateTime
   gender       String
-  type         String               @default("DENTAL")
+  type         String              @default("DENTAL")
   allergies    String?
   conditions   String?
   clinicId     String
-  clinic       Clinic               @relation(fields: [clinicId], references: [id])
+  clinic       Clinic              @relation(fields: [clinicId], references: [id])
   appointments Appointment[]
   notes        ClinicalNote[]
   odontogram   OdontogramFinding[]
-  treatments   TreatmentPlan[]
+  treatments   Treatment[]
   payments     Payment[]
   files        PatientFile[]
   reminders    Reminder[]
-  createdAt    DateTime             @default(now())
+  createdAt    DateTime            @default(now())
 }
 
 model Appointment {
@@ -76,6 +78,7 @@ model Appointment {
   professional   Professional @relation(fields: [professionalId], references: [id])
   clinicId       String
   clinic         Clinic       @relation(fields: [clinicId], references: [id])
+  evolutions     Evolution[]
 }
 
 model ClinicalNote {
@@ -106,40 +109,76 @@ model OdontogramFinding {
   @@unique([patientId, tooth, surface])
 }
 
-model TreatmentPlan {
-  id        String          @id @default(cuid())
-  title     String
-  status    String          @default("PROPUESTO")
-  total     Float
-  patientId String
-  patient   Patient         @relation(fields: [patientId], references: [id])
-  clinicId  String
-  clinic    Clinic          @relation(fields: [clinicId], references: [id])
-  items     TreatmentItem[]
-  createdAt DateTime        @default(now())
+model Treatment {
+  id                        String       @id @default(cuid())
+  title                     String
+  diagnosis                 String?
+  status                    String       @default("PLANIFICADO")
+  startDate                 DateTime     @default(now())
+  endDate                   DateTime?
+  notes                     String?
+  patientId                 String
+  patient                   Patient      @relation(fields: [patientId], references: [id])
+  clinicId                  String
+  clinic                    Clinic       @relation(fields: [clinicId], references: [id])
+  responsibleProfessionalId String
+  responsibleProfessional   Professional @relation(fields: [responsibleProfessionalId], references: [id])
+  evolutions                Evolution[]
+  procedures                Procedure[]
+  payments                  Payment[]
+  createdAt                 DateTime     @default(now())
+  updatedAt                 DateTime     @updatedAt
 }
 
-model TreatmentItem {
-  id          String        @id @default(cuid())
-  description String
+model Evolution {
+  id                 String       @id @default(cuid())
+  date               DateTime     @default(now())
+  cumulativeProgress Int
+  clinicalNotes      String
+  nextSteps          String?
+  treatmentId        String
+  treatment          Treatment    @relation(fields: [treatmentId], references: [id], onDelete: Cascade)
+  professionalId     String
+  professional       Professional @relation(fields: [professionalId], references: [id])
+  appointmentId      String?
+  appointment        Appointment? @relation(fields: [appointmentId], references: [id])
+  procedures         Procedure[]
+  createdAt          DateTime     @default(now())
+
+  @@index([treatmentId, date])
+}
+
+model Procedure {
+  id          String     @id @default(cuid())
+  name        String
   tooth       String?
-  phase       Int           @default(1)
-  quantity    Int           @default(1)
-  unitPrice   Float
-  planId      String
-  plan        TreatmentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  surface     String?
+  price       Float
+  quantity    Int        @default(1)
+  status      String     @default("PLANIFICADA")
+  treatmentId String
+  treatment   Treatment  @relation(fields: [treatmentId], references: [id], onDelete: Cascade)
+  evolutionId String?
+  evolution   Evolution? @relation(fields: [evolutionId], references: [id], onDelete: SetNull)
+  priceItemId String?
+  priceItem   PriceItem? @relation(fields: [priceItemId], references: [id], onDelete: SetNull)
+  createdAt   DateTime   @default(now())
+
+  @@index([treatmentId, status])
 }
 
 model Payment {
-  id        String   @id @default(cuid())
-  amount    Float
-  method    String
-  reference String?
-  date      DateTime @default(now())
-  patientId String
-  patient   Patient  @relation(fields: [patientId], references: [id])
-  clinicId  String
-  clinic    Clinic   @relation(fields: [clinicId], references: [id])
+  id          String     @id @default(cuid())
+  amount      Float
+  method      String
+  reference   String?
+  date        DateTime   @default(now())
+  patientId   String
+  patient     Patient    @relation(fields: [patientId], references: [id])
+  clinicId    String
+  clinic      Clinic     @relation(fields: [clinicId], references: [id])
+  treatmentId String?
+  treatment   Treatment? @relation(fields: [treatmentId], references: [id], onDelete: SetNull)
 }
 
 model Reminder {
@@ -165,10 +204,11 @@ model PatientFile {
 }
 
 model PriceItem {
-  id       String @id @default(cuid())
-  name     String
-  category String
-  price    Float
-  clinicId String
-  clinic   Clinic @relation(fields: [clinicId], references: [id])
+  id         String      @id @default(cuid())
+  name       String
+  category   String
+  price      Float
+  clinicId   String
+  clinic     Clinic      @relation(fields: [clinicId], references: [id])
+  procedures Procedure[]
 }

@@ -2,16 +2,16 @@ import { z } from "zod";
 import { askAI } from "./client";
 
 export const PlanSchema = z.object({
-  summary: z.string(),
-  phases: z.array(
+  title: z.string(),
+  diagnosis: z.string(),
+  notes: z.string(),
+  procedures: z.array(
     z.object({
       name: z.string(),
-      items: z.array(
-        z.object({
-          description: z.string(),
-          price: z.number(),
-        }),
-      ),
+      tooth: z.string().optional(),
+      surface: z.string().optional(),
+      price: z.number().nonnegative(),
+      quantity: z.number().int().positive(),
     }),
   ),
   total: z.number(),
@@ -21,25 +21,19 @@ export type AIPlan = z.infer<typeof PlanSchema>;
 
 export async function proposePlan(context: string) {
   const fallback: AIPlan = {
-    summary: "Plan escalonado priorizando control de enfermedad y rehabilitación.",
-    phases: [
-      {
-        name: "Fase 1 · Control",
-        items: [
-          { description: "Consulta y diagnóstico", price: 650 },
-          { description: "Limpieza dental", price: 850 },
-        ],
-      },
-      {
-        name: "Fase 2 · Restauración",
-        items: [{ description: "Resina dental", price: 1_200 }],
-      },
+    title: "Control y rehabilitación dental",
+    diagnosis: "Hallazgos compatibles con necesidad de control preventivo y restaurador.",
+    notes: "Propuesta clínica sujeta a confirmación profesional.",
+    procedures: [
+      { name: "Consulta de valoración", price: 650, quantity: 1 },
+      { name: "Limpieza dental", price: 850, quantity: 1 },
+      { name: "Resina", tooth: "36", price: 1_200, quantity: 1 },
     ],
     total: 2_700,
   };
 
   return askAI(
-    `Crea un plan dental por fases usando el tarifario. Contexto: ${context}`,
+    `Propón un tratamiento clínico con diagnóstico, notas y prestaciones planificadas usando el tarifario. No inventes procedimientos fuera del contexto. Contexto: ${context}`,
     PlanSchema,
     fallback,
   );

@@ -19,8 +19,10 @@ export default async function DashboardPage() {
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - 6);
 
-  const [appointments, payments, noShows, pendingBalance] = await Promise.all([
+  const [appointments, payments, noShows, realizedProcedures, weeklyEvolutions] = await Promise.all([
     db.appointment.findMany({
       where: { start: { gte: today, lt: tomorrow } },
       include: { patient: true, professional: true },
@@ -33,11 +35,10 @@ export default async function DashboardPage() {
     db.appointment.count({
       where: { status: "NO_ASISTIO", start: { gte: monthStart } },
     }),
-    db.treatmentPlan.aggregate({
-      where: { status: { in: ["ACEPTADO", "EN_CURSO"] } },
-      _sum: { total: true },
-    }),
+    db.procedure.findMany({ where: { status: "REALIZADA" }, select: { price: true, quantity: true } }),
+    db.evolution.count({ where: { date: { gte: weekStart } } }),
   ]);
+  const realizedValue = realizedProcedures.reduce((sum, procedure) => sum + procedure.price * procedure.quantity, 0);
 
   const confirmed = appointments.filter(
     (appointment) => appointment.status === "CONFIRMADA",
@@ -48,7 +49,8 @@ export default async function DashboardPage() {
       confirmed,
       todayIncome: payments._sum.amount ?? 0,
       monthNoShows: noShows,
-      activeTreatmentValue: pendingBalance._sum.total ?? 0,
+      realizedTreatmentValue: realizedValue,
+      weeklyEvolutions,
     }),
   );
 

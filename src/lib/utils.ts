@@ -10,16 +10,29 @@ export const dateMx = (
   options: Intl.DateTimeFormatOptions = { dateStyle: "medium" },
 ) => new Intl.DateTimeFormat("es-MX", options).format(new Date(date));
 
+export function parseDateOnly(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new Error("La fecha debe tener el formato AAAA-MM-DD.");
+  }
+  const date = new Date(`${value}T12:00:00.000Z`);
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
+    throw new Error("La fecha no es válida.");
+  }
+  return date;
+}
+
 export const statusLabel: Record<string, string> = {
   AGENDADA: "Agendada",
   CONFIRMADA: "Confirmada",
   ATENDIDA: "Atendida",
   NO_ASISTIO: "No asistió",
   CANCELADA: "Cancelada",
-  PROPUESTO: "Propuesto",
-  ACEPTADO: "Aceptado",
+  PLANIFICADO: "Planificado",
   EN_CURSO: "En curso",
   TERMINADO: "Terminado",
+  SUSPENDIDO: "Suspendido",
+  PLANIFICADA: "Planificada",
+  REALIZADA: "Realizada",
 };
 
 export function noShowRisk(input: {

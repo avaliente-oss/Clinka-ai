@@ -4,14 +4,16 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "./db";
+import { parseDateOnly } from "./utils";
 
-const treatmentItemsSchema = z.array(
+const proceduresSchema = z.array(
   z.object({
-    description: z.string().min(1),
+    name: z.string().min(1),
     tooth: z.string().optional(),
-    phase: z.coerce.number().int().positive(),
+    surface: z.string().optional(),
     quantity: z.coerce.number().int().positive(),
-    unitPrice: z.coerce.number().nonnegative(),
+    price: z.coerce.number().nonnegative(),
+    priceItemId: z.string().optional(),
   }),
 );
 
@@ -69,7 +71,7 @@ export async function createPatient(form: FormData) {
       lastName: required(form, "lastName"),
       phone: required(form, "phone"),
       email: String(form.get("email") || "").trim() || null,
-      birthDate: new Date(required(form, "birthDate")),
+      birthDate: parseDateOnly(required(form, "birthDate")),
       gender: required(form, "gender"),
       type: required(form, "type"),
       allergies: String(form.get("allergies") || "").trim() || null,
@@ -81,10 +83,16 @@ export async function createPatient(form: FormData) {
 
 export async function createPayment(form: FormData) {
   const clinic = await db.clinic.findFirstOrThrow();
+  const patientId = required(form, "patientId");
+  const treatmentId = String(form.get("treatmentId") || "").trim() || null;
+  if (treatmentId) {
+    await db.treatment.findFirstOrThrow({ where: { id: treatmentId, patientId } });
+  }
   await db.payment.create({
     data: {
       clinicId: clinic.id,
-      patientId: required(form, "patientId"),
+      patientId,
+      treatmentId,
       amount: Number(required(form, "amount")),
       method: required(form, "method"),
       reference: String(form.get("reference") || "").trim() || null,
@@ -155,66 +163,129 @@ export async function addPatientFile(form: FormData) {
   revalidatePath(`/pacientes/${patientId}`);
 }
 
-function parseTreatmentItems(form: FormData) {
-  return treatmentItemsSchema.parse(
-    JSON.parse(required(form, "items")) as unknown,
+function parseProcedures(form: FormData, field = "procedures") {
+  return proceduresSchema.parse(
+    JSON.parse(String(form.get(field) || "[]")) as unknown,
   );
 }
 
-export async function createTreatmentPlan(form: FormData) {
+export async function createTreatment(form: FormData) {
   const clinic = await db.clinic.findFirstOrThrow();
-  const items = parseTreatmentItems(form);
-  const total = items.reduce(
-    (sum, item) => sum + item.quantity * item.unitPrice,
-    0,
-  );
-  await db.treatmentPlan.create({
+  const procedures = parseProcedures(form);
+  const patientId = required(form, "patientId");
+  await db.treatment.create({
     data: {
       clinicId: clinic.id,
-      patientId: required(form, "patientId"),
+      patientId,
       title: required(form, "title"),
-      status: String(form.get("status") || "PROPUESTO"),
-      total,
-      items: { create: items },
+      diagnosis: String(form.get("diagnosis") || "").trim() || null,
+      responsibleProfessionalId: required(form, "professionalId"),
+      status: String(form.get("status") || "PLANIFICADO"),
+      startDate: parseDateOnly(required(form, "startDate")),
+      endDate: String(form.get("endDate") || "").trim()
+        ? parseDateOnly(String(form.get("endDate")))
+        : null,
+      notes: String(form.get("notes") || "").trim() || null,
+      procedures: {
+        create: procedures.map((procedure) => ({
+          ...procedure,
+          tooth: procedure.tooth || null,
+          surface: procedure.surface || null,
+          priceItemId: procedure.priceItemId || null,
+        })),
+      },
     },
   });
-  revalidatePath("/presupuestos");
+  revalidatePath("/tratamientos");
+  revalidatePath(`/pacientes/${patientId}`);
 }
 
-export async function updateTreatmentPlan(form: FormData) {
-  const id = required(form, "id");
-  const items = parseTreatmentItems(form);
-  const total = items.reduce(
-    (sum, item) => sum + item.quantity * item.unitPrice,
-    0,
+export async function updateTreatmentStatus(form: FormData) {
+  const status = required(form, "status");
+  const treatment = await db.treatment.update({
+    where: { id: required(form, "id") },
+    data: {
+      status,
+      endDate: status === "TERMINADO" ? new Date() : null,
+    },
+  });
+  revalidatePath("/tratamientos");
+  revalidatePath(`/pacientes/${treatment.patientId}`);
+}
+
+export async function registerEvolution(form: FormData) {
+  const treatmentId = required(form, "treatmentId");
+  const evolutionDateInput = required(form, "date");
+  const evolutionDate = parseDateOnly(evolutionDateInput);
+  const cumulativeProgress = z.coerce.number().int().min(0).max(100).parse(
+    form.get("cumulativeProgress"),
   );
-  await db.$transaction([
-    db.treatmentItem.deleteMany({ where: { planId: id } }),
-    db.treatmentPlan.update({
-      where: { id },
+  const completedIds = form.getAll("completedProcedureIds").map(String);
+  const newProcedures = parseProcedures(form, "newProcedures");
+
+  const treatment = await db.treatment.findUniqueOrThrow({
+    where: { id: treatmentId },
+    include: { evolutions: { orderBy: [{ date: "desc" }, { createdAt: "desc" }], take: 1 } },
+  });
+  const previousProgress = treatment.evolutions[0]?.cumulativeProgress ?? 0;
+  const previousDate = treatment.evolutions[0]?.date;
+  const previousDateInput = previousDate?.toISOString().slice(0, 10);
+  if (previousDateInput && evolutionDateInput < previousDateInput) {
+    throw new Error("La fecha no puede ser anterior a la evolución más reciente.");
+  }
+  if (cumulativeProgress < previousProgress) {
+    throw new Error(`El avance no puede ser menor al ${previousProgress}% previo.`);
+  }
+
+  await db.$transaction(async (tx) => {
+    if (completedIds.length) {
+      const validCount = await tx.procedure.count({
+        where: { id: { in: completedIds }, treatmentId, status: "PLANIFICADA" },
+      });
+      if (validCount !== completedIds.length) {
+        throw new Error("Una prestación seleccionada ya no está pendiente.");
+      }
+    }
+    const evolution = await tx.evolution.create({
       data: {
-        patientId: required(form, "patientId"),
-        title: required(form, "title"),
-        status: required(form, "status"),
-        total,
-        items: { create: items },
+        treatmentId,
+        date: evolutionDate,
+        professionalId: required(form, "professionalId"),
+        appointmentId: String(form.get("appointmentId") || "").trim() || null,
+        cumulativeProgress,
+        clinicalNotes: required(form, "clinicalNotes"),
+        nextSteps: String(form.get("nextSteps") || "").trim() || null,
       },
-    }),
-  ]);
-  revalidatePath("/presupuestos");
-}
-
-export async function updatePlanStatus(form: FormData) {
-  await db.treatmentPlan.update({
-    where: { id: required(form, "id") },
-    data: { status: required(form, "status") },
+    });
+    if (completedIds.length) {
+      await tx.procedure.updateMany({
+        where: { id: { in: completedIds }, treatmentId },
+        data: { status: "REALIZADA", evolutionId: evolution.id },
+      });
+    }
+    if (newProcedures.length) {
+      await tx.procedure.createMany({
+        data: newProcedures.map((procedure) => ({
+          treatmentId,
+          evolutionId: evolution.id,
+          status: "REALIZADA",
+          name: procedure.name,
+          tooth: procedure.tooth || null,
+          surface: procedure.surface || null,
+          price: procedure.price,
+          quantity: procedure.quantity,
+          priceItemId: procedure.priceItemId || null,
+        })),
+      });
+    }
+    await tx.treatment.update({
+      where: { id: treatmentId },
+      data: {
+        status: cumulativeProgress === 100 ? "TERMINADO" : "EN_CURSO",
+        endDate: cumulativeProgress === 100 ? new Date() : null,
+      },
+    });
   });
-  revalidatePath("/presupuestos");
-}
-
-export async function deleteTreatmentPlan(form: FormData) {
-  await db.treatmentPlan.delete({
-    where: { id: required(form, "id") },
-  });
-  revalidatePath("/presupuestos");
+  revalidatePath("/tratamientos");
+  revalidatePath(`/pacientes/${treatment.patientId}`);
 }

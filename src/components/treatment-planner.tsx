@@ -2,16 +2,15 @@
 
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
-import { createTreatmentPlan } from "@/lib/actions";
-import { money } from "@/lib/utils";
+import { createTreatment } from "@/lib/actions";
+import { localDateTimeValue, money } from "@/lib/utils";
 import { AIDisclaimer } from "./ai-disclaimer";
 
 type Plan = {
-  summary: string;
-  phases: {
-    name: string;
-    items: { description: string; price: number }[];
-  }[];
+  title: string;
+  diagnosis: string;
+  notes: string;
+  procedures: { name: string; tooth?: string; surface?: string; price: number; quantity: number }[];
   total: number;
 };
 
@@ -20,7 +19,7 @@ type PatientOption = {
   name: string;
 };
 
-export function TreatmentPlanner({ patients }: { patients: PatientOption[] }) {
+export function AITreatmentProposal({ patients, professionals }: { patients: PatientOption[]; professionals: PatientOption[] }) {
   const [patientId, setPatientId] = useState(patients[0]?.id ?? "");
   const [context, setContext] = useState(
     "Analiza los hallazgos del odontograma y prioriza control de enfermedad.",
@@ -40,15 +39,10 @@ export function TreatmentPlanner({ patients }: { patients: PatientOption[] }) {
     setBusy(false);
   }
 
-  const items = plan?.phases.flatMap((phase, phaseIndex) =>
-    phase.items.map((item) => ({
-      description: item.description,
-      tooth: "",
-      phase: phaseIndex + 1,
-      quantity: 1,
-      unitPrice: item.price,
-    })),
-  );
+  const procedures = plan?.procedures.map((item) => ({
+    name: item.name, tooth: item.tooth ?? "", surface: item.surface ?? "",
+    quantity: item.quantity, price: item.price, priceItemId: "",
+  }));
 
   return (
     <aside className="card ai">
@@ -57,7 +51,7 @@ export function TreatmentPlanner({ patients }: { patients: PatientOption[] }) {
         <h2>Plan de tratamiento IA</h2>
       </div>
       <p className="small">
-        Combina odontograma, notas clínicas y tarifario para proponer fases.
+        Combina odontograma, notas clínicas y tarifario para proponer un tratamiento.
       </p>
       <div className="field">
         <label>Paciente</label>
@@ -91,37 +85,29 @@ export function TreatmentPlanner({ patients }: { patients: PatientOption[] }) {
         {busy ? "Analizando…" : "Generar propuesta"}
       </button>
 
-      {plan && items && (
+      {plan && procedures && (
         <div className="generated-plan">
-          <b>{plan.summary}</b>
-          {plan.phases.map((phase) => (
-            <div className="listitem" key={phase.name}>
-              <div>
-                <b>{phase.name}</b>
-                <div className="small">
-                  {phase.items
-                    .map((item) => `${item.description} (${money(item.price)})`)
-                    .join(" · ")}
-                </div>
-              </div>
-            </div>
+          <b>{plan.title}</b>
+          <p className="small">{plan.diagnosis}</p>
+          {plan.procedures.map((procedure, index) => (
+            <div className="listitem" key={`${procedure.name}-${index}`}><span>{procedure.name}{procedure.tooth ? ` · pieza ${procedure.tooth}` : ""}</span><b>{procedure.quantity} × {money(procedure.price)}</b></div>
           ))}
           <div className="row between">
             <b>Total estimado</b>
             <b>{money(plan.total)}</b>
           </div>
           <AIDisclaimer />
-          <form action={createTreatmentPlan}>
+          <form action={createTreatment}>
             <input type="hidden" name="patientId" value={patientId} />
-            <input
-              type="hidden"
-              name="title"
-              value="Plan sugerido por IA"
-            />
-            <input type="hidden" name="status" value="PROPUESTO" />
-            <input type="hidden" name="items" value={JSON.stringify(items)} />
+            <input type="hidden" name="professionalId" value={professionals[0]?.id ?? ""} />
+            <input type="hidden" name="title" value={plan.title} />
+            <input type="hidden" name="diagnosis" value={plan.diagnosis} />
+            <input type="hidden" name="notes" value={plan.notes} />
+            <input type="hidden" name="status" value="PLANIFICADO" />
+            <input type="hidden" name="startDate" value={localDateTimeValue(new Date()).slice(0, 10)} />
+            <input type="hidden" name="procedures" value={JSON.stringify(procedures)} />
             <button className="btn ghost full-button">
-              Confirmar y guardar como borrador
+              Confirmar y guardar tratamiento
             </button>
           </form>
         </div>

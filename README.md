@@ -1,6 +1,6 @@
 # Clinika AI
 
-MVP funcional de gestión de consultorios para clínicas dentales y médicas en México. Reúne agenda, expediente, odontograma, presupuestos, caja, recordatorios y reportes con IA integrada en cada flujo. La interfaz está en español de México y todos los importes se muestran en MXN.
+MVP funcional de gestión de consultorios para clínicas dentales y médicas en México. Reúne agenda, expediente, odontograma, tratamientos clínicos, caja, recordatorios y reportes con IA integrada en cada flujo. La interfaz está en español de México y todos los importes se muestran en MXN.
 
 ## Despliegue en Vercel
 
@@ -30,14 +30,15 @@ Abre `http://localhost:3000` e ingresa con `demo@clinika.mx` / `demo123`. La car
 - Dashboard con indicadores diarios e insights semanales.
 - Agenda de dos semanas, alta de citas, estados y riesgo heurístico de inasistencia.
 - 25 expedientes demo, historia SOAP, escriba con dictado del navegador, odontograma SVG de 32 piezas, tratamientos, pagos y metadatos de archivos.
-- Presupuestos por partidas/fases, caja y saldos, recordatorios listos para copiar o abrir en WhatsApp.
+- Tratamientos con profesional responsable, evolución clínica por sesión, avance acumulado y prestaciones planificadas/realizadas.
+- Caja con pagos opcionalmente ligados a un tratamiento; el saldo se calcula sobre prestaciones realizadas.
 - Reportes con Recharts: ingresos, estados de cita y tratamientos frecuentes.
 - Plan de tratamiento, agenda inteligente, mensajería, copiloto del paciente e insights de negocio con módulos IA tipados con Zod.
 - Autenticación demo local por cookie. Ninguna respuesta IA se guarda automáticamente; exige confirmación y muestra el aviso de revisión.
 
 ## Decisiones del MVP
 
-El odontograma registra pieza, superficie y condición; la vista compacta colorea la pieza completa cuando existe un hallazgo. Los archivos guardan sólo metadatos. WhatsApp utiliza `wa.me` y no envía mensajes. La puntuación de inasistencia combina no-shows, anticipación, horario y confirmación de forma explicable. La autenticación es deliberadamente simple y no debe usarse en producción.
+El modelo clínico sigue la jerarquía Tratamiento → Evolución → Prestación. El avance es el porcentaje acumulado de la evolución más reciente y nunca puede disminuir. El total planificado suma todas las prestaciones; el realizado sólo las marcadas como realizadas. El odontograma registra pieza, superficie y condición; la vista compacta colorea la pieza completa cuando existe un hallazgo. Los archivos guardan sólo metadatos. WhatsApp utiliza `wa.me` y no envía mensajes. La puntuación de inasistencia combina no-shows, anticipación, horario y confirmación de forma explicable. La autenticación es deliberadamente simple y no debe usarse en producción.
 
 ## Scripts
 

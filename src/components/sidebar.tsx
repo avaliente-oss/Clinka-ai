@@ -21,7 +21,7 @@ const navigation = [
   ["/", "Inicio", LayoutDashboard],
   ["/agenda", "Agenda", CalendarDays],
   ["/pacientes", "Pacientes", Users],
-  ["/presupuestos", "Tratamientos", Activity],
+  ["/tratamientos", "Tratamientos", Activity],
   ["/caja", "Caja y pagos", WalletCards],
   ["/recordatorios", "Recordatorios", Clock3],
   ["/reportes", "Reportes", ChartNoAxesCombined],

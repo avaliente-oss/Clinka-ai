@@ -8,26 +8,24 @@ export const dynamic = "force-dynamic";
 export default async function CashPage() {
   const [payments, patients] = await Promise.all([
     db.payment.findMany({
-      include: { patient: true },
+      include: { patient: true, treatment: true },
       orderBy: { date: "desc" },
     }),
     db.patient.findMany({
-      include: { treatments: true, payments: true },
+      include: { treatments: { include: { procedures: true } }, payments: true },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     }),
   ]);
   const income = payments.reduce((sum, payment) => sum + payment.amount, 0);
   const billed = patients.reduce(
     (sum, patient) =>
-      sum + patient.treatments.reduce((value, plan) => value + plan.total, 0),
+      sum + patient.treatments.reduce((value, treatment) => value + treatment.procedures.filter((procedure) => procedure.status === "REALIZADA").reduce((subtotal, procedure) => subtotal + procedure.price * procedure.quantity, 0), 0),
     0,
   );
   const patientBalances = patients
     .map((patient) => {
-      const treatmentTotal = patient.treatments.reduce(
-        (sum, plan) => sum + plan.total,
-        0,
-      );
+      const treatmentTotal = patient.treatments.reduce((sum, treatment) =>
+        sum + treatment.procedures.filter((procedure) => procedure.status === "REALIZADA").reduce((subtotal, procedure) => subtotal + procedure.price * procedure.quantity, 0), 0);
       const paid = patient.payments.reduce(
         (sum, payment) => sum + payment.amount,
         0,
@@ -61,7 +59,7 @@ export default async function CashPage() {
         />
         <Summary
           icon={<WalletCards />}
-          label="Tratamientos"
+          label="Prestaciones realizadas"
           value={money(billed)}
         />
         <Summary
@@ -84,6 +82,7 @@ export default async function CashPage() {
                   <div className="small">
                     {dateMx(payment.date)} · {payment.method}
                     {payment.reference ? " · " + payment.reference : ""}
+                    {payment.treatment ? ` · ${payment.treatment.title}` : ""}
                   </div>
                 </div>
                 <b>{money(payment.amount)}</b>
@@ -106,6 +105,16 @@ export default async function CashPage() {
                   </option>
                 ))}
               </select>
+            </div>
+            <div className="field span-all">
+              <label>Tratamiento (opcional)</label>
+              <select className="input" name="treatmentId">
+                <option value="">Pago general del paciente</option>
+                {patients.flatMap((patient) => patient.treatments.map((treatment) => (
+                  <option key={treatment.id} value={treatment.id}>{patient.firstName} {patient.lastName} · {treatment.title}</option>
+                )))}
+              </select>
+              <span className="small">El tratamiento seleccionado debe pertenecer al paciente.</span>
             </div>
             <div className="field">
               <label>Monto MXN</label>
@@ -141,12 +150,13 @@ export default async function CashPage() {
 
       <div className="card section-gap">
         <h2>Saldo por paciente</h2>
+        <p className="notice">El saldo se calcula como prestaciones realizadas menos pagos registrados. Las prestaciones aún planificadas no generan saldo.</p>
         <div className="tablewrap">
           <table className="table">
             <thead>
               <tr>
                 <th>Paciente</th>
-                <th>Tratamientos</th>
+                <th>Prestaciones realizadas</th>
                 <th>Pagado</th>
                 <th>Saldo</th>
               </tr>

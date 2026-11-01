@@ -11,13 +11,14 @@ export default async function ReportsPage() {
   start.setMonth(start.getMonth() - 5, 1);
   start.setHours(0, 0, 0, 0);
 
-  const [payments, appointments, treatmentItems] = await Promise.all([
+  const [payments, appointments, procedures] = await Promise.all([
     db.payment.findMany({ where: { date: { gte: start } } }),
     db.appointment.groupBy({ by: ["status"], _count: true }),
-    db.treatmentItem.groupBy({
-      by: ["description"],
+    db.procedure.groupBy({
+      by: ["name"],
+      where: { status: "REALIZADA" },
       _count: true,
-      orderBy: { _count: { description: "desc" } },
+      orderBy: { _count: { name: "desc" } },
       take: 5,
     }),
   ]);
@@ -39,8 +40,8 @@ export default async function ReportsPage() {
     name: statusLabel[item.status] || item.status,
     value: item._count,
   }));
-  const treatments = treatmentItems.map((item) => ({
-    name: item.description,
+  const treatments = procedures.map((item) => ({
+    name: item.name,
     value: item._count,
   }));
   const insights = await businessInsights(

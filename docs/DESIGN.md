@@ -29,3 +29,7 @@ Las clases globales forman la base reutilizable: `.btn` con variantes `primary`,
 - Confirmada/atendida usan éxito; agendada, teal o neutral; cancelada/no asistió/riesgo alto, peligro; riesgo medio y pago pendiente, advertencia.
 - Los gráficos leen variables CSS: teal como serie principal y neutros como series secundarias; los colores semánticos sólo describen estados.
 - Todo control interactivo debe conservar hover, disabled y foco visible en ambos temas.
+
+## Patrón clínico de tratamientos
+
+Los tratamientos se presentan con estado textual, barra de avance y totales planificado/realizado. Al abrir uno, las evoluciones usan una línea de tiempo por sesión y las prestaciones pendientes permanecen separadas. Los formularios reutilizan `.input`, `.btn`, `.badge`, `.card`, `.progress` y los colores semánticos existentes; no introducen colores por tratamiento.

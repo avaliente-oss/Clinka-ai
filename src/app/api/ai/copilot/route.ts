@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     where: { id: patientId },
     include: {
       notes: { orderBy: { date: "desc" }, take: 8 },
-      treatments: { include: { items: true } },
+      treatments: { include: { procedures: true, evolutions: { orderBy: { date: "desc" }, take: 1 } } },
       payments: { orderBy: { date: "desc" } },
       odontogram: true,
     },
@@ -48,14 +48,16 @@ export async function POST(request: Request) {
       citations: ["Nota clínica del " + dateMx(latestNote.date)],
     };
   } else if (patient.treatments[0]) {
+    const treatment = patient.treatments[0];
+    const realized = treatment.procedures
+      .filter((procedure) => procedure.status === "REALIZADA")
+      .reduce((sum, procedure) => sum + procedure.price * procedure.quantity, 0);
     fallback = {
       answer:
-        "El expediente contiene el plan “" +
-        patient.treatments[0].title +
-        "” por " +
-        money(patient.treatments[0].total) +
-        ".",
-      citations: ["Plan de tratamiento"],
+        "El expediente contiene el tratamiento “" + treatment.title +
+        "”, con " + (treatment.evolutions[0]?.cumulativeProgress ?? 0) +
+        "% de avance y " + money(realized) + " en prestaciones realizadas.",
+      citations: ["Tratamiento clínico"],
     };
   }
 
