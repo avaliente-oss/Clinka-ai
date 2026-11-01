@@ -2,7 +2,9 @@ import Link from "next/link";
 import { Search, UserPlus } from "lucide-react";
 import { createPatient } from "@/lib/actions";
 import { db } from "@/lib/db";
+import { activeWhere } from "@/lib/soft-delete";
 import { dateMx } from "@/lib/utils";
+import { PatientType } from "@prisma/client";
 
 export default async function PatientsPage({
   searchParams,
@@ -11,7 +13,7 @@ export default async function PatientsPage({
 }) {
   const { q = "" } = await searchParams;
   const patients = await db.patient.findMany({
-    where: q
+    where: activeWhere(q
       ? {
           OR: [
             { firstName: { contains: q } },
@@ -20,9 +22,9 @@ export default async function PatientsPage({
             { email: { contains: q } },
           ],
         }
-      : undefined,
+      : {}),
     include: {
-      _count: { select: { appointments: true, treatments: true } },
+      _count: { select: { appointments: true, treatments: { where: activeWhere() } } },
     },
     orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
   });
@@ -89,7 +91,7 @@ export default async function PatientsPage({
                   </td>
                   <td>
                     <span className="badge">
-                      {patient.type === "DENTAL" ? "Dental" : "Médico"}
+                      {patient.type === PatientType.DENTAL ? "Dental" : "Médico"}
                     </span>
                   </td>
                   <td>{patient._count.treatments} tratamientos</td>
@@ -132,9 +134,9 @@ export default async function PatientsPage({
           </Field>
           <Field label="Sexo">
             <select className="input" name="gender">
-              <option>Femenino</option>
-              <option>Masculino</option>
-              <option>No especificado</option>
+              <option value="FEMENINO">Femenino</option>
+              <option value="MASCULINO">Masculino</option>
+              <option value="NO_ESPECIFICADO">No especificado</option>
             </select>
           </Field>
           <Field label="Tipo de expediente">

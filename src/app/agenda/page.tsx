@@ -8,6 +8,8 @@ import {
 } from "@/lib/actions";
 import { suggestSlots } from "@/lib/ai/smart-schedule";
 import { db } from "@/lib/db";
+import { activeWhere } from "@/lib/soft-delete";
+import { AppointmentStatus } from "@prisma/client";
 import {
   dateMx,
   localDateTimeValue,
@@ -35,12 +37,13 @@ export default async function AgendaPage({
 
   const [patients, professionals, appointments, pastNoShows] = await Promise.all([
     db.patient.findMany({
+      where: activeWhere(),
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     }),
     db.professional.findMany({ orderBy: { name: "asc" } }),
     db.appointment.findMany({
       where: {
-        start: { gte: selectedDate, lt: endDate },
+        start: { gte: selectedDate, lt: endDate }, patient: { deletedAt: null },
         professionalId: query.professional || undefined,
       },
       include: { patient: true, professional: true },
@@ -48,7 +51,7 @@ export default async function AgendaPage({
     }),
     db.appointment.groupBy({
       by: ["patientId"],
-      where: { status: "NO_ASISTIO" },
+      where: { status: AppointmentStatus.NO_ASISTIO },
       _count: true,
     }),
   ]);
@@ -166,7 +169,8 @@ export default async function AgendaPage({
                   noShows: noShowsByPatient.get(appointment.patientId) ?? 0,
                   daysAhead,
                   hour: appointment.start.getHours(),
-                  confirmed: appointment.status === "CONFIRMADA",
+                  confirmed: appointment.status === AppointmentStatus.CONFIRMADA,
+                  reminderSent: appointment.status === AppointmentStatus.RECORDATORIO_ENVIADO,
                 });
 
                 return (
@@ -218,13 +222,7 @@ export default async function AgendaPage({
                           defaultValue={appointment.status}
                           aria-label="Estado"
                         >
-                          {[
-                            "AGENDADA",
-                            "CONFIRMADA",
-                            "ATENDIDA",
-                            "NO_ASISTIO",
-                            "CANCELADA",
-                          ].map((status) => (
+                          {Object.values(AppointmentStatus).map((status) => (
                             <option key={status} value={status}>
                               {statusLabel[status]}
                             </option>

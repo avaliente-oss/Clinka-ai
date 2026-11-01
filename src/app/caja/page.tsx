@@ -1,45 +1,40 @@
 import { CircleDollarSign, WalletCards } from "lucide-react";
 import { createPayment } from "@/lib/actions";
 import { db } from "@/lib/db";
-import { dateMx, money } from "@/lib/utils";
+import { addMoney, proceduresTotal, subtractMoney, sumMoney } from "@/lib/money";
+import { activeWhere } from "@/lib/soft-delete";
+import { dateMx, enumLabel, money } from "@/lib/utils";
+import { PaymentMethod, ProcedureStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
 export default async function CashPage() {
   const [payments, patients] = await Promise.all([
     db.payment.findMany({
-      include: { patient: true, treatment: true },
+      where: { patient: { deletedAt: null } }, include: { patient: true, treatment: true },
       orderBy: { date: "desc" },
     }),
     db.patient.findMany({
-      include: { treatments: { include: { procedures: true } }, payments: true },
+      where: activeWhere(), include: { treatments: { where: activeWhere(), include: { procedures: true } }, payments: true },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     }),
   ]);
-  const income = payments.reduce((sum, payment) => sum + payment.amount, 0);
-  const billed = patients.reduce(
-    (sum, patient) =>
-      sum + patient.treatments.reduce((value, treatment) => value + treatment.procedures.filter((procedure) => procedure.status === "REALIZADA").reduce((subtotal, procedure) => subtotal + procedure.price * procedure.quantity, 0), 0),
-    0,
-  );
+  const income = sumMoney(payments, (payment) => payment.amount);
+  const billed = addMoney(...patients.flatMap((patient) => patient.treatments.map((treatment) => proceduresTotal(treatment.procedures.filter((procedure) => procedure.status === ProcedureStatus.REALIZADA)))));
   const patientBalances = patients
     .map((patient) => {
-      const treatmentTotal = patient.treatments.reduce((sum, treatment) =>
-        sum + treatment.procedures.filter((procedure) => procedure.status === "REALIZADA").reduce((subtotal, procedure) => subtotal + procedure.price * procedure.quantity, 0), 0);
-      const paid = patient.payments.reduce(
-        (sum, payment) => sum + payment.amount,
-        0,
-      );
+      const treatmentTotal = addMoney(...patient.treatments.map((treatment) => proceduresTotal(treatment.procedures.filter((procedure) => procedure.status === ProcedureStatus.REALIZADA))));
+      const paid = sumMoney(patient.payments, (payment) => payment.amount);
       return {
         id: patient.id,
         name: patient.firstName + " " + patient.lastName,
         treatmentTotal,
         paid,
-        balance: Math.max(0, treatmentTotal - paid),
+        balance: subtractMoney(treatmentTotal, paid),
       };
     })
-    .filter((patient) => patient.treatmentTotal > 0)
-    .sort((a, b) => b.balance - a.balance);
+    .filter((patient) => patient.treatmentTotal.isPositive())
+    .sort((a, b) => b.balance.comparedTo(a.balance));
 
   return (
     <>
@@ -65,7 +60,7 @@ export default async function CashPage() {
         <Summary
           icon={<CircleDollarSign />}
           label="Saldo pendiente"
-          value={money(Math.max(0, billed - income))}
+          value={money(subtractMoney(billed, income))}
         />
       </div>
 
@@ -80,7 +75,7 @@ export default async function CashPage() {
                     {payment.patient.firstName} {payment.patient.lastName}
                   </b>
                   <div className="small">
-                    {dateMx(payment.date)} · {payment.method}
+                    {dateMx(payment.date)} · {enumLabel[payment.method]}
                     {payment.reference ? " · " + payment.reference : ""}
                     {payment.treatment ? ` · ${payment.treatment.title}` : ""}
                   </div>
@@ -130,9 +125,9 @@ export default async function CashPage() {
             <div className="field">
               <label>Método</label>
               <select className="input" name="method">
-                <option>Tarjeta</option>
-                <option>Transferencia</option>
-                <option>Efectivo</option>
+                <option value={PaymentMethod.TARJETA}>Tarjeta</option>
+                <option value={PaymentMethod.TRANSFERENCIA}>Transferencia</option>
+                <option value={PaymentMethod.EFECTIVO}>Efectivo</option>
               </select>
             </div>
             <div className="field span-all">

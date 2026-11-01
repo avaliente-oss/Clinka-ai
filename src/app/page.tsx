@@ -9,7 +9,9 @@ import {
 import { AIDisclaimer } from "@/components/ai-disclaimer";
 import { businessInsights } from "@/lib/ai/insights";
 import { db } from "@/lib/db";
+import { proceduresTotal, serializeMoney } from "@/lib/money";
 import { dateMx, money, statusLabel } from "@/lib/utils";
+import { AppointmentStatus, ProcedureStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -24,32 +26,32 @@ export default async function DashboardPage() {
 
   const [appointments, payments, noShows, realizedProcedures, weeklyEvolutions] = await Promise.all([
     db.appointment.findMany({
-      where: { start: { gte: today, lt: tomorrow } },
+      where: { start: { gte: today, lt: tomorrow }, patient: { deletedAt: null } },
       include: { patient: true, professional: true },
       orderBy: { start: "asc" },
     }),
     db.payment.aggregate({
-      where: { date: { gte: today, lt: tomorrow } },
+      where: { date: { gte: today, lt: tomorrow }, patient: { deletedAt: null } },
       _sum: { amount: true },
     }),
     db.appointment.count({
-      where: { status: "NO_ASISTIO", start: { gte: monthStart } },
+      where: { status: AppointmentStatus.NO_ASISTIO, start: { gte: monthStart } },
     }),
-    db.procedure.findMany({ where: { status: "REALIZADA" }, select: { price: true, quantity: true } }),
-    db.evolution.count({ where: { date: { gte: weekStart } } }),
+    db.procedure.findMany({ where: { status: ProcedureStatus.REALIZADA, treatment: { deletedAt: null, patient: { deletedAt: null } } }, select: { price: true, quantity: true, discount: true } }),
+    db.evolution.count({ where: { date: { gte: weekStart }, deletedAt: null, treatment: { deletedAt: null } } }),
   ]);
-  const realizedValue = realizedProcedures.reduce((sum, procedure) => sum + procedure.price * procedure.quantity, 0);
+  const realizedValue = proceduresTotal(realizedProcedures);
 
   const confirmed = appointments.filter(
-    (appointment) => appointment.status === "CONFIRMADA",
+    (appointment) => appointment.status === AppointmentStatus.CONFIRMADA,
   ).length;
   const insights = await businessInsights(
     JSON.stringify({
       todayAppointments: appointments.length,
       confirmed,
-      todayIncome: payments._sum.amount ?? 0,
+      todayIncome: serializeMoney(payments._sum.amount ?? 0),
       monthNoShows: noShows,
-      realizedTreatmentValue: realizedValue,
+      realizedTreatmentValue: serializeMoney(realizedValue),
       weeklyEvolutions,
     }),
   );

@@ -2,7 +2,9 @@ import { AIDisclaimer } from "@/components/ai-disclaimer";
 import { ReportCharts } from "@/components/report-charts";
 import { businessInsights } from "@/lib/ai/insights";
 import { db } from "@/lib/db";
+import { sumMoney } from "@/lib/money";
 import { statusLabel } from "@/lib/utils";
+import { ProcedureStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -12,11 +14,11 @@ export default async function ReportsPage() {
   start.setHours(0, 0, 0, 0);
 
   const [payments, appointments, procedures] = await Promise.all([
-    db.payment.findMany({ where: { date: { gte: start } } }),
+    db.payment.findMany({ where: { date: { gte: start }, patient: { deletedAt: null } } }),
     db.appointment.groupBy({ by: ["status"], _count: true }),
     db.procedure.groupBy({
       by: ["name"],
-      where: { status: "REALIZADA" },
+      where: { status: ProcedureStatus.REALIZADA, treatment: { deletedAt: null, patient: { deletedAt: null } } },
       _count: true,
       orderBy: { _count: { name: "desc" } },
       take: 5,
@@ -27,13 +29,11 @@ export default async function ReportsPage() {
   const monthly = Array.from({ length: 6 }, (_, index) => {
     const date = new Date(start);
     date.setMonth(start.getMonth() + index);
-    const total = payments
-      .filter(
+    const total = sumMoney(payments.filter(
         (payment) =>
           payment.date.getFullYear() === date.getFullYear() &&
           payment.date.getMonth() === date.getMonth(),
-      )
-      .reduce((sum, payment) => sum + payment.amount, 0);
+      ), (payment) => payment.amount).toNumber();
     return { name: formatter.format(date), total };
   });
   const statuses = appointments.map((item) => ({

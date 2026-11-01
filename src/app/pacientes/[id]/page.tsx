@@ -7,7 +7,10 @@ import { PatientCopilot } from "@/components/patient-copilot";
 import { TreatmentForm } from "@/components/treatment-form";
 import { addPatientFile, updateTreatmentStatus } from "@/lib/actions";
 import { db } from "@/lib/db";
-import { dateMx, money, statusLabel } from "@/lib/utils";
+import { addMoney, procedureNet, proceduresTotal, serializeMoney, subtractMoney, sumMoney } from "@/lib/money";
+import { activeWhere } from "@/lib/soft-delete";
+import { dateMx, enumLabel, money, statusLabel } from "@/lib/utils";
+import { PatientType, ProcedureStatus } from "@prisma/client";
 
 export default async function PatientPage({
   params,
@@ -16,18 +19,22 @@ export default async function PatientPage({
 }) {
   const { id } = await params;
   const [patient, professionals, prices] = await Promise.all([
-    db.patient.findUnique({ where: { id }, include: {
+    db.patient.findFirst({ where: activeWhere({ id }), include: {
       notes: {
+        where: activeWhere(),
         include: { professional: true },
         orderBy: { date: "desc" },
       },
       odontogram: { orderBy: [{ tooth: "asc" }, { surface: "asc" }] },
       treatments: {
+        where: activeWhere(),
         include: {
           responsibleProfessional: true,
           procedures: true,
+          payments: true,
           evolutions: {
-            include: { professional: true, procedures: true },
+            where: activeWhere(),
+            include: { professional: true, procedures: { include: { performedBy: true } } },
             orderBy: [{ date: "asc" }, { createdAt: "asc" }],
           },
         },
@@ -44,12 +51,9 @@ export default async function PatientPage({
   if (!patient) notFound();
 
   const treatmentTotal = patient.treatments.reduce((sum, treatment) =>
-    sum + treatment.procedures.filter((procedure) => procedure.status === "REALIZADA").reduce((subtotal, procedure) => subtotal + procedure.price * procedure.quantity, 0), 0);
-  const paidTotal = patient.payments.reduce(
-    (sum, payment) => sum + payment.amount,
-    0,
-  );
-  const balance = Math.max(0, treatmentTotal - paidTotal);
+    sum.plus(proceduresTotal(treatment.procedures.filter((procedure) => procedure.status === ProcedureStatus.REALIZADA))), addMoney());
+  const paidTotal = sumMoney(patient.payments, (payment) => payment.amount);
+  const balance = subtractMoney(treatmentTotal, paidTotal);
 
   return (
     <>
@@ -79,7 +83,7 @@ export default async function PatientPage({
           </div>
         </div>
         <span className="badge">
-          {patient.type === "DENTAL"
+          {patient.type === PatientType.DENTAL
             ? "Paciente dental"
             : "Medicina general"}
         </span>
@@ -92,7 +96,7 @@ export default async function PatientPage({
         <a className="tab" href="#historia">
           Historia clínica
         </a>
-        {patient.type === "DENTAL" && (
+        {patient.type === PatientType.DENTAL && (
           <a className="tab" href="#odontograma">
             Odontograma
           </a>
@@ -117,10 +121,10 @@ export default async function PatientPage({
                 label="Fecha de nacimiento"
                 value={dateMx(patient.birthDate)}
               />
-              <Info label="Sexo" value={patient.gender} />
+              <Info label="Sexo" value={enumLabel[patient.gender]} />
               <Info
                 label="Tipo de atención"
-                value={patient.type === "DENTAL" ? "Dental" : "Médica"}
+                value={patient.type === PatientType.DENTAL ? "Dental" : "Médica"}
               />
               <Info
                 label="Alergias"
@@ -173,7 +177,7 @@ export default async function PatientPage({
             </div>
           </section>
 
-          {patient.type === "DENTAL" && (
+          {patient.type === PatientType.DENTAL && (
             <section id="odontograma">
               <Odontogram
                 patientId={patient.id}
@@ -186,15 +190,17 @@ export default async function PatientPage({
             <div className="row between"><h2>Tratamientos</h2><details><summary className="btn primary">Nuevo tratamiento</summary><div className="modal-like"><TreatmentForm
               patients={[{ id: patient.id, name: `${patient.firstName} ${patient.lastName}` }]}
               professionals={professionals.map((item) => ({ id: item.id, name: item.name }))}
-              prices={prices.map((item) => ({ id: item.id, name: item.name, price: item.price }))}
+              prices={prices.map((item) => ({ id: item.id, name: item.name, price: serializeMoney(item.price) }))}
               patientId={patient.id}
             /></div></details></div>
             {patient.treatments.length ? (
               patient.treatments.map((treatment) => {
-                const plannedTotal = treatment.procedures.reduce((sum, procedure) => sum + procedure.price * procedure.quantity, 0);
-                const realizedTotal = treatment.procedures.filter((procedure) => procedure.status === "REALIZADA").reduce((sum, procedure) => sum + procedure.price * procedure.quantity, 0);
+                const plannedTotal = proceduresTotal(treatment.procedures);
+                const realizedTotal = proceduresTotal(treatment.procedures.filter((procedure) => procedure.status === ProcedureStatus.REALIZADA));
+                const paidTotal = sumMoney(treatment.payments, (payment) => payment.amount);
+                const treatmentBalance = subtractMoney(realizedTotal, paidTotal);
                 const progress = treatment.evolutions.at(-1)?.cumulativeProgress ?? 0;
-                const pending = treatment.procedures.filter((procedure) => procedure.status === "PLANIFICADA");
+                const pending = treatment.procedures.filter((procedure) => procedure.status === ProcedureStatus.PLANIFICADA);
                 return (
                 <details className="treatment-card" key={treatment.id} id={`tratamiento-${treatment.id}`}>
                   <summary className="details-summary">
@@ -208,29 +214,32 @@ export default async function PatientPage({
                     <span className="small">Responsable: {treatment.responsibleProfessional.name}</span>
                   </div>
                   <div className="progress"><span style={{ width: `${progress}%` }} /></div>
-                  <div className="row between small"><b>{progress}% de avance</b><span>Planificado {money(plannedTotal)} · Realizado {money(realizedTotal)}</span></div>
+                  <div className="row between small"><b>{progress}% de avance</b><span>Total {money(plannedTotal)} · Realizado {money(realizedTotal)} · Pagado {money(paidTotal)} · Saldo {money(treatmentBalance)}</span></div>
                   </summary>
                   <div className="treatment-detail">
                     {treatment.diagnosis && <p><b>Diagnóstico / motivo:</b> {treatment.diagnosis}</p>}
                     {treatment.notes && <p className="small">{treatment.notes}</p>}
+                    <p className="notice">Saldo = prestaciones realizadas netas − pagos ligados a este tratamiento.</p>
                     <form action={updateTreatmentStatus} className="row"><input type="hidden" name="id" value={treatment.id} /><label className="small" htmlFor={`status-${treatment.id}`}>Estado</label><select id={`status-${treatment.id}`} className="input" name="status" defaultValue={treatment.status}>{["PLANIFICADO", "EN_CURSO", "TERMINADO", "SUSPENDIDO"].map((status) => <option value={status} key={status}>{statusLabel[status]}</option>)}</select><button className="btn">Guardar estado</button></form>
                     <h3>Evoluciones</h3>
                     {treatment.evolutions.length ? <ol className="timeline">{treatment.evolutions.map((evolution, index) => <li key={evolution.id}>
                       <div className="row between"><b>Sesión {index + 1} · {dateMx(evolution.date)}</b><span className="badge">Avance {evolution.cumulativeProgress}%</span></div>
                       <div className="small">{evolution.professional.name}</div><p>{evolution.clinicalNotes}</p>
                       {evolution.nextSteps && <p className="small"><b>Próximos pasos:</b> {evolution.nextSteps}</p>}
-                      {evolution.procedures.length > 0 && <ul className="compact-list">{evolution.procedures.map((procedure) => <li key={procedure.id}>{procedure.name}{procedure.tooth ? ` · pieza ${procedure.tooth}` : ""}{procedure.surface ? ` · ${procedure.surface}` : ""} · {procedure.quantity} × {money(procedure.price)}</li>)}</ul>}
+                      {evolution.procedures.length > 0 && <ul className="compact-list">{evolution.procedures.map((procedure) => <li key={procedure.id}><span>{procedure.name}{procedure.tooth ? ` · Pieza ${procedure.tooth}` : ""}{procedure.surfaces.length ? ` · ${procedure.surfaces.map((surface) => enumLabel[surface]).join(", ")}` : ""} · neto {money(procedureNet(procedure))}</span>{procedure.performedAt && procedure.performedBy && <div className="small">Realizada el {dateMx(procedure.performedAt)} por {procedure.performedBy.name}</div>}</li>)}</ul>}
                     </li>)}</ol> : <p className="small">Aún no hay evoluciones.</p>}
                     <h3>Prestaciones pendientes</h3>
-                    {pending.length ? <ul className="compact-list">{pending.map((procedure) => <li key={procedure.id}>{procedure.name}{procedure.tooth ? ` · pieza ${procedure.tooth}` : ""}{procedure.surface ? ` · ${procedure.surface}` : ""} · {procedure.quantity} × {money(procedure.price)}</li>)}</ul> : <p className="small">No hay prestaciones planificadas pendientes.</p>}
+                    {pending.length ? <ul className="compact-list">{pending.map((procedure) => <li key={procedure.id}>{procedure.name}{procedure.tooth ? ` · Pieza ${procedure.tooth}` : ""}{procedure.surfaces.length ? ` · ${procedure.surfaces.map((surface) => enumLabel[surface]).join(", ")}` : ""} · neto {money(procedureNet(procedure))}</li>)}</ul> : <p className="small">No hay prestaciones planificadas pendientes.</p>}
                     <details className="details-form"><summary className="btn primary">Registrar evolución</summary><EvolutionForm
                       treatmentId={treatment.id}
                       previousProgress={progress}
                       defaultProfessionalId={treatment.responsibleProfessional.id}
                       professionals={professionals.map((item) => ({ id: item.id, name: item.name }))}
                       appointments={patient.appointments.map((appointment) => ({ id: appointment.id, name: `${dateMx(appointment.start)} · ${appointment.reason}` }))}
-                      pending={pending.map((procedure) => ({ id: procedure.id, name: procedure.name, tooth: procedure.tooth, surface: procedure.surface, price: procedure.price, quantity: procedure.quantity }))}
-                      prices={prices.map((item) => ({ id: item.id, name: item.name, price: item.price }))}
+                      pending={pending.map((procedure) => ({ id: procedure.id, name: procedure.name, tooth: procedure.tooth, surfaces: procedure.surfaces, price: serializeMoney(procedure.price), quantity: procedure.quantity, discount: serializeMoney(procedure.discount) }))}
+                      prices={prices.map((item) => ({ id: item.id, name: item.name, price: serializeMoney(item.price) }))}
+                      treatmentTotal={serializeMoney(plannedTotal)}
+                      realizedTotal={serializeMoney(realizedTotal)}
                     /></details>
                   </div>
                 </details>
@@ -249,7 +258,7 @@ export default async function PatientPage({
               patient.payments.map((payment) => (
                 <div className="listitem" key={payment.id}>
                   <span>
-                    {dateMx(payment.date)} · {payment.method}
+                    {dateMx(payment.date)} · {enumLabel[payment.method]}
                     {payment.reference ? " · " + payment.reference : ""}
                     {payment.treatmentId ? " · aplicado a tratamiento" : ""}
                   </span>

@@ -12,7 +12,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (request.cookies.get("clinika_session")?.value !== "demo") {
+  if (!request.cookies.get("clinika_session")?.value) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 

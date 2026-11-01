@@ -23,7 +23,7 @@ npm run db:setup
 npm run dev
 ```
 
-Abre `http://localhost:3000` e ingresa con `demo@clinika.mx` / `demo123`. La carga demo es idempotente: si la base ya contiene una clínica, no modifica sus datos.
+Abre `http://localhost:3000` e ingresa con `demo@clinika.mx` / `demo123`. La carga demo es idempotente: sólo completa ejemplos o campos demo faltantes.
 
 ## Incluye
 
@@ -41,6 +41,8 @@ Abre `http://localhost:3000` e ingresa con `demo@clinika.mx` / `demo123`. La car
 El modelo clínico sigue la jerarquía Tratamiento → Evolución → Prestación. El avance es el porcentaje acumulado de la evolución más reciente y nunca puede disminuir. El total planificado suma todas las prestaciones; el realizado sólo las marcadas como realizadas. El odontograma registra pieza, superficie y condición; la vista compacta colorea la pieza completa cuando existe un hallazgo. Los archivos guardan sólo metadatos. WhatsApp utiliza `wa.me` y no envía mensajes. La puntuación de inasistencia combina no-shows, anticipación, horario y confirmación de forma explicable. La autenticación es deliberadamente simple y no debe usarse en producción.
 
 ## Scripts
+
+El esquema clínico, sus reglas de integridad y la estrategia de migraciones están documentados en [docs/DATA_MODEL.md](docs/DATA_MODEL.md).
 
 - `npm run dev`: servidor de desarrollo.
 - `npm run build`: compilación de producción.

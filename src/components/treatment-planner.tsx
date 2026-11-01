@@ -3,14 +3,15 @@
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
 import { createTreatment } from "@/lib/actions";
-import { localDateTimeValue, money } from "@/lib/utils";
+import { centsToMoney, procedureNetCents, proceduresTotalCents } from "@/lib/money-client";
+import { localDateTimeValue, money, statusLabel } from "@/lib/utils";
 import { AIDisclaimer } from "./ai-disclaimer";
 
 type Plan = {
   title: string;
   diagnosis: string;
   notes: string;
-  procedures: { name: string; tooth?: string; surface?: string; price: number; quantity: number }[];
+  procedures: { name: string; tooth?: string; surfaces: string[]; price: number; quantity: number; discount: number }[];
   total: number;
 };
 
@@ -40,9 +41,10 @@ export function AITreatmentProposal({ patients, professionals }: { patients: Pat
   }
 
   const procedures = plan?.procedures.map((item) => ({
-    name: item.name, tooth: item.tooth ?? "", surface: item.surface ?? "",
-    quantity: item.quantity, price: item.price, priceItemId: "",
+    name: item.name, tooth: item.tooth ?? "", surfaces: item.surfaces,
+    quantity: item.quantity, price: item.price.toFixed(2), discount: item.discount.toFixed(2), priceItemId: "",
   }));
+  const total = procedures ? proceduresTotalCents(procedures) : 0;
 
   return (
     <aside className="card ai">
@@ -90,11 +92,11 @@ export function AITreatmentProposal({ patients, professionals }: { patients: Pat
           <b>{plan.title}</b>
           <p className="small">{plan.diagnosis}</p>
           {plan.procedures.map((procedure, index) => (
-            <div className="listitem" key={`${procedure.name}-${index}`}><span>{procedure.name}{procedure.tooth ? ` · pieza ${procedure.tooth}` : ""}</span><b>{procedure.quantity} × {money(procedure.price)}</b></div>
+            <div className="listitem" key={`${procedure.name}-${index}`}><span>{procedure.name}{procedure.tooth ? ` · pieza ${procedure.tooth}` : ""}{procedure.surfaces.length ? ` · ${procedure.surfaces.map((surface) => statusLabel[surface] ?? surface).join(", ")}` : ""}</span><b>{money(centsToMoney(procedureNetCents(procedures[index])))}</b></div>
           ))}
           <div className="row between">
             <b>Total estimado</b>
-            <b>{money(plan.total)}</b>
+            <b>{money(centsToMoney(total))}</b>
           </div>
           <AIDisclaimer />
           <form action={createTreatment}>

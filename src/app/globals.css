@@ -153,6 +153,12 @@ textarea.input { resize: vertical; }
 .badge.EN_CURSO, .badge.PENDIENTE {
   background: var(--warning-soft); border-color: color-mix(in srgb, var(--warning) 38%, var(--border)); color: var(--warning-text);
 }
+.badge.REPROGRAMADA {
+  background: var(--warning-soft); border-color: color-mix(in srgb, var(--warning) 38%, var(--border)); color: var(--warning-text);
+}
+.badge.RECORDATORIO_ENVIADO {
+  background: var(--primary-soft); border-color: color-mix(in srgb, var(--primary) 35%, var(--border)); color: var(--primary);
+}
 .list { display: grid; }
 .listitem { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--border); }
 .listitem:last-child { border-bottom: 0; }
@@ -251,7 +257,12 @@ textarea.input { resize: vertical; }
 .odontogram-editor { display: grid; grid-template-columns: minmax(160px, .6fr) 1.4fr; gap: 16px; padding-top: 16px; margin-top: 16px; border-top: 1px solid var(--border); }
 .surface-summary { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .treatment-form, .evolution-form { margin-top: 16px; }
-.procedure-line { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(180px, 1.5fr) 72px 72px 72px 100px auto; gap: 8px; margin-top: 8px; }
+.procedure-line { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(180px, 1.5fr) 72px minmax(190px, 1fr) 72px 100px 100px auto; gap: 8px; margin-top: 8px; }
+.surface-picker { display: flex; min-width: 190px; flex-wrap: wrap; align-items: center; gap: 4px; }
+.surface-chip { min-width: 32px; height: 32px; padding: 0 7px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text-muted); cursor: pointer; font-size: 10px; font-weight: 600; }
+.surface-chip:hover { border-color: var(--primary); color: var(--primary); }
+.surface-chip[aria-pressed="true"] { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); }
+.table-help { margin: 12px; }
 .filterbar { display: flex; align-items: end; gap: 12px; }
 .filterbar .field { min-width: 200px; }
 .treatment-card > summary { display: grid; gap: 10px; }

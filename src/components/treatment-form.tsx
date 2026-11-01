@@ -3,25 +3,29 @@
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { createTreatment } from "@/lib/actions";
+import { centsToMoney, proceduresTotalCents } from "@/lib/money-client";
 import { localDateTimeValue, money } from "@/lib/utils";
+import { SurfaceSelector } from "./surface-selector";
 
 type Option = { id: string; name: string };
-type Price = Option & { price: number };
+type Price = Option & { price: string };
 type ProcedureInput = {
   name: string;
   tooth: string;
-  surface: string;
+  surfaces: string[];
   quantity: number;
-  price: number;
+  price: string;
+  discount: string;
   priceItemId: string;
 };
 
 const emptyProcedure: ProcedureInput = {
   name: "",
   tooth: "",
-  surface: "",
+  surfaces: [],
   quantity: 1,
-  price: 0,
+  price: "0.00",
+  discount: "0.00",
   priceItemId: "",
 };
 
@@ -39,10 +43,7 @@ export function TreatmentForm({
   const [procedures, setProcedures] = useState<ProcedureInput[]>([
     { ...emptyProcedure },
   ]);
-  const total = procedures.reduce(
-    (sum, procedure) => sum + procedure.price * procedure.quantity,
-    0,
-  );
+  const total = proceduresTotalCents(procedures);
 
   function update(index: number, patch: Partial<ProcedureInput>) {
     setProcedures((current) =>
@@ -57,7 +58,7 @@ export function TreatmentForm({
     update(index, {
       priceItemId: id,
       name: price?.name ?? "",
-      price: price?.price ?? 0,
+      price: price?.price ?? "0.00",
     });
   }
 
@@ -127,15 +128,16 @@ export function TreatmentForm({
             </select>
             <input className="input line-description" aria-label="Nombre" placeholder="Prestación" value={procedure.name} onChange={(event) => update(index, { name: event.target.value })} required />
             <input className="input" aria-label="Pieza" placeholder="Pieza" value={procedure.tooth} onChange={(event) => update(index, { tooth: event.target.value })} />
-            <input className="input" aria-label="Superficie" placeholder="Sup." value={procedure.surface} onChange={(event) => update(index, { surface: event.target.value })} />
+            <SurfaceSelector value={procedure.surfaces} onChange={(surfaces) => update(index, { surfaces })} />
             <input className="input" type="number" min="1" aria-label="Cantidad" value={procedure.quantity} onChange={(event) => update(index, { quantity: Number(event.target.value) })} />
-            <input className="input" type="number" min="0" step="0.01" aria-label="Precio" value={procedure.price} onChange={(event) => update(index, { price: Number(event.target.value) })} />
+            <input className="input" type="number" min="0" step="0.01" aria-label="Precio" value={procedure.price} onChange={(event) => update(index, { price: event.target.value })} />
+            <input className="input" type="number" min="0" step="0.01" aria-label="Descuento" placeholder="Descuento" value={procedure.discount} onChange={(event) => update(index, { discount: event.target.value })} />
             <button className="btn danger" type="button" disabled={procedures.length === 1} onClick={() => setProcedures((current) => current.filter((_, itemIndex) => itemIndex !== index))} aria-label="Eliminar prestación"><Trash2 size={14} /></button>
           </div>
         ))}
       </div>
       <div className="row between">
-        <b>Total planificado: {money(total)}</b>
+        <b>Total planificado: {money(centsToMoney(total))}</b>
         <button className="btn primary">Crear tratamiento</button>
       </div>
     </form>

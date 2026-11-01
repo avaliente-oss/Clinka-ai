@@ -2,15 +2,19 @@ import { MessageCircleMore } from "lucide-react";
 import { AIDisclaimer } from "@/components/ai-disclaimer";
 import { ReminderActions } from "@/components/reminder-actions";
 import { generateMessage } from "@/lib/ai/messages";
+import { ReminderStatus } from "@prisma/client";
 import { db } from "@/lib/db";
-import { dateMx } from "@/lib/utils";
+import { dateMx, enumLabel } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function RemindersPage() {
   const reminders = await db.reminder.findMany({
-    where: { status: "PENDIENTE" },
-    include: { patient: true },
+    where: { status: ReminderStatus.PENDIENTE, patient: { deletedAt: null } },
+    include: {
+      patient: true,
+      appointment: true,
+    },
     orderBy: { scheduledFor: "asc" },
   });
   const generated = await Promise.all(
@@ -51,7 +55,7 @@ export default async function RemindersPage() {
                     {reminder.patient.firstName} {reminder.patient.lastName}
                   </b>
                   <div className="small">
-                    {reminder.type} · programado{" "}
+                    {enumLabel[reminder.type]} · programado{" "}
                     {dateMx(reminder.scheduledFor, {
                       weekday: "long",
                       day: "numeric",
@@ -68,6 +72,7 @@ export default async function RemindersPage() {
               <ReminderActions
                 phone={reminder.patient.phone}
                 message={reminder.generatedMessage}
+                reminderId={reminder.id}
               />
             </div>
           </article>

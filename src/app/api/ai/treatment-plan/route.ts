@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { proposePlan } from "@/lib/ai/treatment-plan";
 import { db } from "@/lib/db";
+import { activeWhere } from "@/lib/soft-delete";
 
 const RequestSchema = z.object({
   patientId: z.string().min(1),
@@ -10,11 +11,11 @@ const RequestSchema = z.object({
 export async function POST(request: Request) {
   const { patientId, context } = RequestSchema.parse(await request.json());
   const [patient, prices] = await Promise.all([
-    db.patient.findUniqueOrThrow({
-      where: { id: patientId },
+    db.patient.findFirstOrThrow({
+      where: activeWhere({ id: patientId }),
       include: {
         odontogram: true,
-        notes: { orderBy: { date: "desc" }, take: 5 },
+        notes: { where: activeWhere(), orderBy: { date: "desc" }, take: 5 },
       },
     }),
     db.priceItem.findMany({ orderBy: { name: "asc" } }),
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
     recentNotes: patient.notes,
     prices: prices.map((price) => ({
       service: price.name,
-      price: price.price,
+      price: price.price.toFixed(2),
     })),
   };
 

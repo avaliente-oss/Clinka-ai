@@ -1,7 +1,10 @@
 import { z } from "zod";
 import { patientAnswer } from "@/lib/ai/copilot";
 import { db } from "@/lib/db";
+import { proceduresTotal } from "@/lib/money";
+import { activeWhere } from "@/lib/soft-delete";
 import { dateMx, money } from "@/lib/utils";
+import { ProcedureStatus } from "@prisma/client";
 
 const RequestSchema = z.object({
   patientId: z.string().min(1),
@@ -10,11 +13,11 @@ const RequestSchema = z.object({
 
 export async function POST(request: Request) {
   const { patientId, question } = RequestSchema.parse(await request.json());
-  const patient = await db.patient.findUniqueOrThrow({
-    where: { id: patientId },
+  const patient = await db.patient.findFirstOrThrow({
+    where: activeWhere({ id: patientId }),
     include: {
-      notes: { orderBy: { date: "desc" }, take: 8 },
-      treatments: { include: { procedures: true, evolutions: { orderBy: { date: "desc" }, take: 1 } } },
+      notes: { where: activeWhere(), orderBy: { date: "desc" }, take: 8 },
+      treatments: { where: activeWhere(), include: { procedures: true, evolutions: { where: activeWhere(), orderBy: { date: "desc" }, take: 1 } } },
       payments: { orderBy: { date: "desc" } },
       odontogram: true,
     },
@@ -49,9 +52,9 @@ export async function POST(request: Request) {
     };
   } else if (patient.treatments[0]) {
     const treatment = patient.treatments[0];
-    const realized = treatment.procedures
-      .filter((procedure) => procedure.status === "REALIZADA")
-      .reduce((sum, procedure) => sum + procedure.price * procedure.quantity, 0);
+    const realized = proceduresTotal(
+      treatment.procedures.filter((procedure) => procedure.status === ProcedureStatus.REALIZADA),
+    );
     fallback = {
       answer:
         "El expediente contiene el tratamiento “" + treatment.title +
