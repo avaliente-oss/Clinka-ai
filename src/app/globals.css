@@ -405,3 +405,20 @@ textarea.input { resize: vertical; }
 .procedure-line > .btn:last-child { align-self: end; justify-self: start; width: 36px; min-height: 36px; padding: 0; }
 .ai-demo-banner { padding: 10px 32px; border-bottom: 1px solid color-mix(in srgb, var(--warning) 38%, var(--border)); background: var(--warning-soft); color: var(--warning-text); font-size: 12px; }
 @media (max-width: 900px) { .ai-demo-banner { padding: 10px 20px; } }
+.copilot { display: grid; gap: 12px; }
+.copilot h3, .copilot p { margin: 0; }
+.chat-thread { display: flex; height: min(46vh, 380px); min-height: 220px; flex-direction: column; gap: 8px; padding: 12px; overflow-y: auto; background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 7px; }
+.bubble { max-width: 88%; margin: 0; padding: 9px 12px; border: 1px solid var(--border); font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
+.bubble.assistant { align-self: flex-start; background: var(--surface); border-radius: 10px 10px 10px 3px; }
+.bubble.user { align-self: flex-end; background: var(--primary); border-color: var(--primary); border-radius: 10px 10px 3px 10px; color: var(--on-primary, #fff); }
+.bubble .citation-list { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 11px; }
+.bubble.typing { display: flex; gap: 4px; padding: 12px; }
+.bubble.typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); animation: copilot-dot 1.2s infinite ease-in-out; }
+.bubble.typing span:nth-child(2) { animation-delay: .15s; }
+.bubble.typing span:nth-child(3) { animation-delay: .3s; }
+@keyframes copilot-dot { 0%, 80%, 100% { opacity: .3; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+.chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { padding: 5px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--primary); cursor: pointer; font: inherit; font-size: 12px; text-align: left; }
+.chip:hover { border-color: var(--primary); }
+.chat-input { display: grid; grid-template-columns: minmax(0, 1fr) 36px; align-items: end; gap: 8px; }
+.chat-input textarea { min-height: 38px; max-height: 120px; resize: none; field-sizing: content; }

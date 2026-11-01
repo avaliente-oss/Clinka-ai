@@ -1,18 +1,33 @@
 import { z } from "zod";
-import { patientAnswer } from "@/lib/ai/copilot";
+import { patientConversation } from "@/lib/ai/copilot";
 import { db } from "@/lib/db";
 import { addMoney, proceduresTotal, subtractMoney, sumMoney, type MoneyValue } from "@/lib/money";
 import { activeWhere } from "@/lib/soft-delete";
 import { dateMx, enumLabel, money, statusLabel } from "@/lib/utils";
 import { ProcedureStatus } from "@prisma/client";
 
+const MessageSchema = z.object({
+  role: z.enum(["user", "assistant"]),
+  content: z.string().min(1).max(2_000),
+});
+
+// `messages` is the conversation so far (last one from the user); `question` is kept for one-shot callers.
 const RequestSchema = z.object({
   patientId: z.string().min(1),
-  question: z.string().min(1).max(2_000),
+  messages: z.array(MessageSchema).max(40).optional(),
+  question: z.string().min(1).max(2_000).optional(),
+}).refine((body) => body.messages?.at(-1)?.role === "user" || Boolean(body.question), {
+  message: "Falta la pregunta del usuario.",
 });
 
 export async function POST(request: Request) {
-  const { patientId, question } = RequestSchema.parse(await request.json());
+  const parsed = RequestSchema.safeParse(await request.json());
+  if (!parsed.success) {
+    return Response.json({ error: "Solicitud inválida." }, { status: 400 });
+  }
+  const { patientId, question } = parsed.data;
+  // Keep the last 12 turns so long chats stay within the model context.
+  const messages = (parsed.data.messages ?? [{ role: "user" as const, content: question ?? "" }]).slice(-12);
   const patient = await db.patient.findFirstOrThrow({
     where: activeWhere({ id: patientId }),
     include: {
@@ -84,39 +99,21 @@ export async function POST(request: Request) {
   ];
   const record = lines.join("\n");
 
-  let fallback = {
+  let latestFact = "";
+  if (latestNote) {
+    latestFact = `La evaluación más reciente registra “${latestNote.assessment}” y el plan indicado fue: ${latestNote.plan}`;
+  } else if (patient.treatments.length) {
+    const treatment = patient.treatments[0];
+    latestFact = `El expediente contiene el tratamiento “${treatment.title}” con ${treatment.evolutions.at(-1)?.cumulativeProgress ?? 0}% de avance.`;
+  }
+  const fallback = {
     answer:
-      "No encontré información suficiente en el expediente para responder con certeza.",
-    citations: ["Expediente del paciente"],
+      "No pude generar una respuesta con IA en este momento, así que no puedo conversar sobre tu pregunta." +
+      (latestFact ? ` Te dejo el dato más reciente del expediente: ${latestFact}` : ""),
+    citations: latestNote ? [`Nota clínica del ${dateMx(latestNote.date)}`] : [],
+    suggestions: [],
   };
 
-  if (latestNote) {
-    fallback = {
-      answer:
-        "La evaluación más reciente registra “" +
-        latestNote.assessment +
-        "”. El plan indicado fue: " +
-        latestNote.plan,
-      citations: ["Nota clínica del " + dateMx(latestNote.date)],
-    };
-  } else if (patient.treatments[0]) {
-    const treatment = patient.treatments[0];
-    const realized = proceduresTotal(
-      treatment.procedures.filter((procedure) => procedure.status === ProcedureStatus.REALIZADA),
-    );
-    fallback = {
-      answer:
-        "El expediente contiene el tratamiento “" + treatment.title +
-        "”, con " + (treatment.evolutions.at(-1)?.cumulativeProgress ?? 0) +
-        "% de avance y " + money(realized) + " en prestaciones realizadas.",
-      citations: ["Tratamiento clínico"],
-    };
-  }
-
-  const answer = await patientAnswer(
-    question,
-    record,
-    fallback,
-  );
+  const answer = await patientConversation(messages, record, fallback);
   return Response.json(answer);
 }
