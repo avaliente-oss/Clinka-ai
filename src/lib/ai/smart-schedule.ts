@@ -11,7 +11,7 @@ export const SlotsSchema = z.object({
 });
 
 export async function suggestSlots(context: string) {
-  return askAI(
+  const result = await askAI(
     `Sugiere tres horarios sin inventar disponibilidad fuera del contexto: ${context}`,
     SlotsSchema,
     {
@@ -32,4 +32,24 @@ export async function suggestSlots(context: string) {
     },
     { cacheSeconds: 60 * 30 }, // Caché de 30 minutos: la agenda cambia el contexto.
   );
+  try {
+    const parsed = JSON.parse(context) as {
+      blockedRanges?: Array<{ start: string; end: string }>;
+    };
+    const blocked = parsed.blockedRanges ?? [];
+    return {
+      slots: result.slots.filter((slot) => {
+        const start = new Date(slot.datetime);
+        if (Number.isNaN(start.getTime())) return true;
+        const end = new Date(start.getTime() + 30 * 60_000);
+        return !blocked.some((range) => {
+          const blockedStart = new Date(range.start);
+          const blockedEnd = new Date(range.end);
+          return start < blockedEnd && end > blockedStart;
+        });
+      }),
+    };
+  } catch {
+    return result;
+  }
 }

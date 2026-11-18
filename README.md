@@ -28,13 +28,15 @@ Abre `http://localhost:3000` e ingresa con `demo@clinika.mx` / `demo123`. La car
 ## Incluye
 
 - Dashboard con indicadores diarios e insights semanales.
-- Agenda de dos semanas, alta de citas, estados y riesgo heurístico de inasistencia.
+- Agenda diaria/semanal, bloqueos únicos o recurrentes, alta de citas, estados y riesgo heurístico de inasistencia.
 - 25 expedientes demo, historia SOAP, escriba con dictado del navegador, odontograma SVG de 32 piezas, tratamientos, pagos y metadatos de archivos.
 - Tratamientos con profesional responsable, evolución clínica por sesión, avance acumulado y prestaciones planificadas/realizadas.
 - Caja con pagos opcionalmente ligados a un tratamiento; el saldo se calcula sobre prestaciones realizadas.
 - Reportes con Recharts: ingresos, estados de cita y tratamientos frecuentes.
 - Plan de tratamiento, agenda inteligente, mensajería, copiloto del paciente e insights de negocio con módulos IA tipados con Zod.
 - Autenticación demo local por cookie. Ninguna respuesta IA se guarda automáticamente; exige confirmación y muestra el aviso de revisión.
+- Selector demo Clínica / Administración / Todo que adapta navegación, dashboard y expediente sin cambiar permisos.
+- Modelo preparado para inventario y documentos; sus interfaces completas se incorporarán en las etapas 2 y 3.
 
 ## Decisiones del MVP
 

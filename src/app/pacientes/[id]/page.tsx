@@ -1,5 +1,6 @@
 import { Activity, Mail, Phone } from "lucide-react";
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import { BalanceValue } from "@/components/balance-value";
 import { DeleteTreatmentButton } from "@/components/delete-treatment-button";
 import { AIScribe } from "@/components/ai-scribe";
@@ -13,6 +14,7 @@ import { db } from "@/lib/db";
 import { addMoney, procedureNet, proceduresTotal, serializeMoney, subtractMoney, sumMoney } from "@/lib/money";
 import { activeWhere } from "@/lib/soft-delete";
 import { dateMx, enumLabel, money, statusLabel } from "@/lib/utils";
+import { parseDemoView } from "@/lib/demo-view";
 import { PatientType, ProcedureStatus } from "@prisma/client";
 
 export default async function PatientPage({
@@ -21,6 +23,9 @@ export default async function PatientPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const demoView = parseDemoView((await cookies()).get("clinika_view")?.value);
+  const administrationOnly = demoView === "administracion";
+  const clinicalOnly = demoView === "clinica";
   const [patient, professionals, prices] = await Promise.all([
     db.patient.findFirst({ where: activeWhere({ id }), include: {
       notes: {
@@ -59,10 +64,10 @@ export default async function PatientPage({
   const balance = subtractMoney(treatmentTotal, paidTotal);
   const tabs = [
     { id: "datos", label: "Datos" },
-    { id: "historia", label: "Historia clínica" },
-    ...(patient.type === PatientType.DENTAL ? [{ id: "odontograma", label: "Odontograma" }] : []),
+    ...(!administrationOnly ? [{ id: "historia", label: "Historia clínica" }] : []),
+    ...(!administrationOnly && patient.type === PatientType.DENTAL ? [{ id: "odontograma", label: "Odontograma" }] : []),
     { id: "tratamientos", label: "Tratamientos" },
-    { id: "pagos", label: "Pagos" },
+    ...(!clinicalOnly ? [{ id: "pagos", label: "Pagos" }] : []),
     { id: "archivos", label: "Archivos" },
   ];
 
@@ -102,11 +107,11 @@ export default async function PatientPage({
 
       <PatientTabs tabs={tabs} />
 
-      <div className="grid-2 patient-layout">
+      <div className={administrationOnly ? "patient-layout" : "grid-2 patient-layout"}>
         <main className="patient-panel-stack">
           <section aria-labelledby="tab-datos" data-patient-panel id="datos" role="tabpanel" tabIndex={0}>
             <div className="card">
-            <h2>Resumen clínico</h2>
+            <h2>{administrationOnly ? "Datos del paciente" : "Resumen clínico"}</h2>
             <div className="grid three">
               <Info
                 label="Fecha de nacimiento"
@@ -117,21 +122,15 @@ export default async function PatientPage({
                 label="Tipo de atención"
                 value={patient.type === PatientType.DENTAL ? "Dental" : "Médica"}
               />
-              <Info
-                label="Alergias"
-                value={patient.allergies || "Sin registro"}
-              />
-              <Info
-                label="Antecedentes"
-                value={patient.conditions || "Sin registro"}
-              />
-              <Info label="Saldo pendiente" value={<BalanceValue value={balance} />} />
+              {!administrationOnly && <Info label="Alergias" value={patient.allergies || "Sin registro"} />}
+              {!administrationOnly && <Info label="Antecedentes" value={patient.conditions || "Sin registro"} />}
+              {!clinicalOnly && <Info label="Saldo pendiente" value={<BalanceValue value={balance} />} />}
             </div>
             </div>
-            <AIScribe patientId={patient.id} />
+            {!administrationOnly && <AIScribe patientId={patient.id} />}
           </section>
 
-          <section aria-labelledby="tab-historia" data-patient-panel hidden id="historia" role="tabpanel" tabIndex={0}>
+          {!administrationOnly && <section aria-labelledby="tab-historia" data-patient-panel hidden id="historia" role="tabpanel" tabIndex={0}>
             <div className="card">
               <h2>Historia clínica · notas SOAP</h2>
               {patient.notes.length ? (
@@ -167,9 +166,9 @@ export default async function PatientPage({
                 <p className="small">Aún no hay notas clínicas.</p>
               )}
             </div>
-          </section>
+          </section>}
 
-          {patient.type === PatientType.DENTAL && (
+          {!administrationOnly && patient.type === PatientType.DENTAL && (
             <section aria-labelledby="tab-odontograma" data-patient-panel hidden id="odontograma" role="tabpanel" tabIndex={0}>
               <Odontogram
                 patientId={patient.id}
@@ -179,12 +178,12 @@ export default async function PatientPage({
           )}
 
           <section aria-labelledby="tab-tratamientos" className="card" data-patient-panel hidden id="tratamientos" role="tabpanel" tabIndex={0}>
-            <details className="panel-header-form"><summary className="row between"><h2>Tratamientos</h2><span className="btn primary">Nuevo tratamiento</span></summary><div className="modal-like"><TreatmentForm
+            {!administrationOnly ? <details className="panel-header-form"><summary className="row between"><h2>Tratamientos</h2><span className="btn primary">Nuevo tratamiento</span></summary><div className="modal-like"><TreatmentForm
               patients={[{ id: patient.id, name: `${patient.firstName} ${patient.lastName}` }]}
               professionals={professionals.map((item) => ({ id: item.id, name: item.name }))}
               prices={prices.map((item) => ({ id: item.id, name: item.name, price: serializeMoney(item.price) }))}
               patientId={patient.id}
-            /></div></details>
+            /></div></details> : <><h2>Tratamientos · resumen financiero</h2><p className="small">Vista de consulta: importes realizados, pagos y saldo por tratamiento.</p></>}
             {patient.treatments.length ? (
               patient.treatments.map((treatment) => {
                 const plannedTotal = proceduresTotal(treatment.procedures);
@@ -208,10 +207,18 @@ export default async function PatientPage({
                     </div>
                     <span className="small">Responsable: {treatment.responsibleProfessional.name}</span>
                   </div>
-                  <div className="progress"><span style={{ width: `${progress}%` }} /></div>
-                  <div className="row between small"><b>{progress}% de avance</b><span className="row treatment-totals"><span>Total {money(plannedTotal)} · Realizado {money(realizedTotal)} · Pagado {money(paidTotal)} · Saldo</span><BalanceValue value={treatmentBalance} /></span></div>
+                  {!administrationOnly && <div className="progress"><span style={{ width: `${progress}%` }} /></div>}
+                  <div className="row between small">{!administrationOnly && <b>{progress}% de avance</b>}<span className="row treatment-totals"><span>Total {money(plannedTotal)} · Realizado {money(realizedTotal)} · Pagado {money(paidTotal)} · Saldo</span><BalanceValue value={treatmentBalance} /></span></div>
                   </summary>
                   <div className="treatment-detail">
+                    {administrationOnly ? (
+                      <div className="grid three">
+                        <Info label="Total planificado" value={money(plannedTotal)} />
+                        <Info label="Realizado" value={money(realizedTotal)} />
+                        <Info label="Pagado" value={money(paidTotal)} />
+                        <Info label="Saldo" value={<BalanceValue value={treatmentBalance} />} />
+                      </div>
+                    ) : <>
                     {treatment.diagnosis && <p><b>Diagnóstico / motivo:</b> {treatment.diagnosis}</p>}
                     {treatment.notes && <p className="small">{treatment.notes}</p>}
                     <p className="notice">Saldo = prestaciones realizadas netas − pagos ligados a este tratamiento.</p>
@@ -237,6 +244,7 @@ export default async function PatientPage({
                       treatmentTotal={serializeMoney(plannedTotal)}
                       realizedTotal={serializeMoney(realizedTotal)}
                     /></details>
+                    </>}
                   </div>
                 </details>
               );})
@@ -245,7 +253,7 @@ export default async function PatientPage({
             )}
           </section>
 
-          <section aria-labelledby="tab-pagos" className="card" data-patient-panel hidden id="pagos" role="tabpanel" tabIndex={0}>
+          {!clinicalOnly && <section aria-labelledby="tab-pagos" className="card" data-patient-panel hidden id="pagos" role="tabpanel" tabIndex={0}>
             <div className="row between">
               <h2>Pagos</h2>
               <BalanceValue value={balance} />
@@ -264,7 +272,7 @@ export default async function PatientPage({
             ) : (
               <p className="small">Sin pagos registrados.</p>
             )}
-          </section>
+          </section>}
 
           <section aria-labelledby="tab-archivos" className="card" data-patient-panel hidden id="archivos" role="tabpanel" tabIndex={0}>
             <h2>Archivos · metadatos</h2>
@@ -312,9 +320,7 @@ export default async function PatientPage({
           </section>
         </main>
 
-        <aside className="patient-aside">
-          <PatientCopilot patientId={patient.id} />
-        </aside>
+        {!administrationOnly && <aside className="patient-aside"><PatientCopilot patientId={patient.id} /></aside>}
       </div>
     </div>
   );

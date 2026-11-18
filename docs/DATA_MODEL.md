@@ -9,6 +9,8 @@ erDiagram
   Clinic ||--o{ Patient : atiende
   Patient ||--o{ Appointment : agenda
   Professional ||--o{ Appointment : atiende
+  Clinic ||--o{ ScheduleBlock : bloquea
+  Professional o|--o{ ScheduleBlock : restringe
   Patient ||--o{ ClinicalNote : conserva
   Patient ||--o{ OdontogramFinding : registra
   Patient ||--o{ Treatment : recibe
@@ -22,6 +24,17 @@ erDiagram
   Patient ||--o{ Payment : paga
   Treatment o|--o{ Payment : aplica
   PriceItem o|--o{ Procedure : cataloga
+  Clinic ||--o{ Supply : almacena
+  Supply ||--o{ SupplyMovement : registra
+  PriceItem ||--o{ PriceItemSupply : consume
+  Supply ||--o{ PriceItemSupply : integra
+  Procedure o|--o{ SupplyMovement : origina
+  Clinic ||--o{ DocumentTemplate : configura
+  Patient ||--o{ Prescription : recibe
+  Professional ||--o{ Prescription : prescribe
+  Prescription ||--o{ PrescriptionItem : contiene
+  Clinic ||--o{ IssuedDocument : emite
+  Patient ||--o{ IssuedDocument : recibe
   User o|--o{ ClinicalNote : audita
   User o|--o{ Treatment : audita
   User o|--o{ Evolution : audita
@@ -42,6 +55,21 @@ erDiagram
 - `Procedure`: prestación planificada o realizada, superficies, precio, cantidad, descuento y metadatos de realización.
 - `Payment`: pago de paciente, opcionalmente aplicado a un tratamiento.
 - `PriceItem`: tarifario reutilizable. `PatientFile` conserva metadatos de documentos.
+- `ScheduleBlock`: indisponibilidad de toda la clínica o de un profesional. Puede ser única, diaria o semanal; las recurrencias conservan la hora y, para semanal, el día derivado de `start`.
+- `Supply`, `SupplyMovement` y `PriceItemSupply`: existencias, kardex de deltas con fotografía opcional del saldo y receta de insumos por concepto del tarifario. `Supply` usa borrado lógico.
+- `DocumentTemplate`: plantilla por clínica con marcadores `{{nombre}}` y borrado lógico. `Prescription`/`PrescriptionItem` conservan la receta clínica; `IssuedDocument` es el registro inmutable con el JSON exacto renderizado al emitir.
+
+## Agenda y bloqueos
+
+Un bloqueo aplica si es de toda la clínica (`professionalId` nulo) o del profesional de la cita y si sus rangos se traslapan con la regla `inicio < finBloqueo AND fin > inicioBloqueo`. `src/lib/schedule.ts` expande recurrencias para el rango solicitado y es compartido por las acciones, la agenda y el contexto de agenda inteligente. La base exige `end > start`.
+
+## Inventario
+
+Existencias y cantidades usan `Decimal(12,3)`; costos unitarios usan `Decimal(12,2)`. `SupplyMovement.quantity` es un delta firmado y nunca puede ser cero. `PriceItemSupply.quantity` debe ser positiva. Los movimientos conservan autor, fecha, motivo, saldo resultante opcional y referencia opcional a la prestación que consumió el material.
+
+## Documentos
+
+`Clinic` contiene razón social, domicilio, contacto, RFC, logotipo y pie documental opcionales. `Professional` contiene cédula, cédula de especialidad y universidad. Las plantillas cubren presupuesto, receta, consentimiento y estado de cuenta. Cada emisión crea un `IssuedDocument`; sus referencias opcionales usan `SET NULL`, pero el `snapshot` JSON mantiene el contenido histórico.
 
 ## Reglas de Tratamiento → Evolución → Prestación
 
@@ -54,7 +82,7 @@ erDiagram
 
 ## Dinero, catálogos y auditoría
 
-Todo importe usa `Decimal(12,2)`. La aritmética de servidor vive en `src/lib/money.ts` con `Prisma.Decimal`; hacia componentes cliente se serializa como texto y se calcula en centavos enteros. No se suman importes con `number`.
+Todo importe usa `Decimal(12,2)` y las cantidades de inventario `Decimal(12,3)`. La aritmética decimal de servidor vive en `src/lib/money.ts` con `Prisma.Decimal`; hacia componentes cliente se serializa como texto. No se suman importes con `number`.
 
 Los conjuntos cerrados son enums Prisma. Las etiquetas visibles en español están centralizadas en `src/lib/utils.ts`; nunca se persisten etiquetas como si fueran valores del enum.
 
@@ -65,6 +93,8 @@ Todos los modelos de negocio tienen `createdAt` y `updatedAt`. Notas, tratamient
 Las relaciones que sostienen historia clínica usan `RESTRICT`, en particular desde paciente, tratamiento y evolución. Las referencias opcionales y reemplazables —cita de recordatorio/evolución, catálogo, profesional ejecutor, pago aplicado y usuarios de auditoría— usan `SET NULL`. No se usa cascada para expedientes clínicos. Las restricciones `CHECK` de la base protegen avance, cantidad, importes y descuentos aunque una escritura no pase por la UI.
 
 Cada llave foránea tiene índice. Además existen índices compuestos para agenda por clínica/profesional y fecha, tratamientos por estado, evoluciones por tratamiento/fecha, pagos por clínica/fecha y recordatorios pendientes.
+
+Los `CHECK` agregados en SQL garantizan: fin posterior al inicio en bloqueos, movimiento de inventario distinto de cero y consumo por concepto mayor que cero.
 
 ## Migraciones seguras
 

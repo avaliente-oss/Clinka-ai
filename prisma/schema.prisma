@@ -75,87 +75,131 @@ enum OdontogramCondition {
   CORONA
 }
 
+enum BlockRecurrence {
+  NONE
+  DAILY
+  WEEKLY
+}
+
+enum SupplyMovementType {
+  ENTRADA
+  SALIDA
+  AJUSTE
+  CONSUMO
+}
+
+enum DocumentType {
+  PRESUPUESTO
+  RECETA
+  CONSENTIMIENTO
+  ESTADO_CUENTA
+}
+
 model Clinic {
-  id            String         @id @default(cuid())
-  name          String
-  users         User[]
-  professionals Professional[]
-  patients      Patient[]
-  appointments  Appointment[]
-  treatments    Treatment[]
-  payments      Payment[]
-  reminders     Reminder[]
-  prices        PriceItem[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id                String             @id @default(cuid())
+  name              String
+  legalName         String?
+  address           String?
+  phone             String?
+  email             String?
+  rfc               String?
+  logoUrl           String?
+  documentFooter    String?            @db.Text
+  users             User[]
+  professionals     Professional[]
+  patients          Patient[]
+  appointments      Appointment[]
+  treatments        Treatment[]
+  payments          Payment[]
+  reminders         Reminder[]
+  prices            PriceItem[]
+  scheduleBlocks    ScheduleBlock[]
+  supplies          Supply[]
+  documentTemplates DocumentTemplate[]
+  issuedDocuments   IssuedDocument[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 }
 
 model User {
-  id                   String              @id @default(cuid())
-  email                String              @unique
-  name                 String
-  password             String
-  clinicId             String
-  clinic               Clinic              @relation(fields: [clinicId], references: [id], onDelete: Restrict)
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime            @updatedAt
-  clinicalNotesCreated ClinicalNote[]      @relation("ClinicalNoteCreatedBy")
-  clinicalNotesUpdated ClinicalNote[]      @relation("ClinicalNoteUpdatedBy")
-  treatmentsCreated    Treatment[]         @relation("TreatmentCreatedBy")
-  treatmentsUpdated    Treatment[]         @relation("TreatmentUpdatedBy")
-  evolutionsCreated    Evolution[]         @relation("EvolutionCreatedBy")
-  evolutionsUpdated    Evolution[]         @relation("EvolutionUpdatedBy")
-  proceduresCreated    Procedure[]         @relation("ProcedureCreatedBy")
-  proceduresUpdated    Procedure[]         @relation("ProcedureUpdatedBy")
-  findingsCreated      OdontogramFinding[] @relation("FindingCreatedBy")
-  findingsUpdated      OdontogramFinding[] @relation("FindingUpdatedBy")
-  paymentsCreated      Payment[]           @relation("PaymentCreatedBy")
-  paymentsUpdated      Payment[]           @relation("PaymentUpdatedBy")
+  id                     String              @id @default(cuid())
+  email                  String              @unique
+  name                   String
+  password               String
+  clinicId               String
+  clinic                 Clinic              @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+  clinicalNotesCreated   ClinicalNote[]      @relation("ClinicalNoteCreatedBy")
+  clinicalNotesUpdated   ClinicalNote[]      @relation("ClinicalNoteUpdatedBy")
+  treatmentsCreated      Treatment[]         @relation("TreatmentCreatedBy")
+  treatmentsUpdated      Treatment[]         @relation("TreatmentUpdatedBy")
+  evolutionsCreated      Evolution[]         @relation("EvolutionCreatedBy")
+  evolutionsUpdated      Evolution[]         @relation("EvolutionUpdatedBy")
+  proceduresCreated      Procedure[]         @relation("ProcedureCreatedBy")
+  proceduresUpdated      Procedure[]         @relation("ProcedureUpdatedBy")
+  findingsCreated        OdontogramFinding[] @relation("FindingCreatedBy")
+  findingsUpdated        OdontogramFinding[] @relation("FindingUpdatedBy")
+  paymentsCreated        Payment[]           @relation("PaymentCreatedBy")
+  paymentsUpdated        Payment[]           @relation("PaymentUpdatedBy")
+  scheduleBlocksCreated  ScheduleBlock[]     @relation("ScheduleBlockCreatedBy")
+  scheduleBlocksUpdated  ScheduleBlock[]     @relation("ScheduleBlockUpdatedBy")
+  supplyMovementsCreated SupplyMovement[]    @relation("SupplyMovementCreatedBy")
+  prescriptionsCreated   Prescription[]      @relation("PrescriptionCreatedBy")
+  prescriptionsUpdated   Prescription[]      @relation("PrescriptionUpdatedBy")
+  issuedDocumentsCreated IssuedDocument[]    @relation("IssuedDocumentCreatedBy")
 
   @@index([clinicId])
 }
 
 model Professional {
-  id                  String         @id @default(cuid())
+  id                  String          @id @default(cuid())
   name                String
   specialty           String
   color               String
+  licenseNumber       String?
+  specialtyLicense    String?
+  university          String?
   clinicId            String
-  clinic              Clinic         @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  clinic              Clinic          @relation(fields: [clinicId], references: [id], onDelete: Restrict)
   appointments        Appointment[]
   notes               ClinicalNote[]
   treatments          Treatment[]
   evolutions          Evolution[]
-  performedProcedures Procedure[]    @relation("ProcedurePerformedBy")
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
+  performedProcedures Procedure[]     @relation("ProcedurePerformedBy")
+  scheduleBlocks      ScheduleBlock[]
+  prescriptions       Prescription[]
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
 
   @@index([clinicId])
 }
 
 model Patient {
-  id           String              @id @default(cuid())
-  firstName    String
-  lastName     String
-  phone        String
-  email        String?
-  birthDate    DateTime
-  gender       Gender
-  type         PatientType         @default(DENTAL)
-  allergies    String?
-  conditions   String?
-  clinicId     String
-  clinic       Clinic              @relation(fields: [clinicId], references: [id], onDelete: Restrict)
-  appointments Appointment[]
-  notes        ClinicalNote[]
-  odontogram   OdontogramFinding[]
-  treatments   Treatment[]
-  payments     Payment[]
-  files        PatientFile[]
-  reminders    Reminder[]
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
-  deletedAt    DateTime?
+  id              String              @id @default(cuid())
+  firstName       String
+  lastName        String
+  phone           String
+  email           String?
+  birthDate       DateTime
+  gender          Gender
+  type            PatientType         @default(DENTAL)
+  allergies       String?
+  conditions      String?
+  clinicId        String
+  clinic          Clinic              @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  appointments    Appointment[]
+  notes           ClinicalNote[]
+  odontogram      OdontogramFinding[]
+  treatments      Treatment[]
+  payments        Payment[]
+  files           PatientFile[]
+  reminders       Reminder[]
+  prescriptions   Prescription[]
+  issuedDocuments IssuedDocument[]
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  deletedAt       DateTime?
 
   @@index([clinicId])
   @@index([clinicId, deletedAt])
@@ -232,28 +276,29 @@ model OdontogramFinding {
 }
 
 model Treatment {
-  id                        String          @id @default(cuid())
+  id                        String           @id @default(cuid())
   title                     String
   diagnosis                 String?
-  status                    TreatmentStatus @default(PLANIFICADO)
-  startDate                 DateTime        @default(now())
+  status                    TreatmentStatus  @default(PLANIFICADO)
+  startDate                 DateTime         @default(now())
   endDate                   DateTime?
   notes                     String?
   patientId                 String
-  patient                   Patient         @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  patient                   Patient          @relation(fields: [patientId], references: [id], onDelete: Restrict)
   clinicId                  String
-  clinic                    Clinic          @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  clinic                    Clinic           @relation(fields: [clinicId], references: [id], onDelete: Restrict)
   responsibleProfessionalId String
-  responsibleProfessional   Professional    @relation(fields: [responsibleProfessionalId], references: [id], onDelete: Restrict)
+  responsibleProfessional   Professional     @relation(fields: [responsibleProfessionalId], references: [id], onDelete: Restrict)
   evolutions                Evolution[]
   procedures                Procedure[]
   payments                  Payment[]
+  issuedDocuments           IssuedDocument[]
   createdById               String?
-  createdBy                 User?           @relation("TreatmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy                 User?            @relation("TreatmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   updatedById               String?
-  updatedBy                 User?           @relation("TreatmentUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
-  createdAt                 DateTime        @default(now())
-  updatedAt                 DateTime        @updatedAt
+  updatedBy                 User?            @relation("TreatmentUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt                 DateTime         @default(now())
+  updatedAt                 DateTime         @updatedAt
   deletedAt                 DateTime?
 
   @@index([clinicId, status])
@@ -292,29 +337,30 @@ model Evolution {
 }
 
 model Procedure {
-  id            String          @id @default(cuid())
-  name          String
-  tooth         String?
-  surfaces      DentalSurface[] @default([])
-  price         Decimal         @db.Decimal(12, 2)
-  quantity      Int             @default(1)
-  discount      Decimal         @default(0) @db.Decimal(12, 2)
-  status        ProcedureStatus @default(PLANIFICADA)
-  treatmentId   String
-  treatment     Treatment       @relation(fields: [treatmentId], references: [id], onDelete: Restrict)
-  evolutionId   String?
-  evolution     Evolution?      @relation(fields: [evolutionId], references: [id], onDelete: SetNull)
-  priceItemId   String?
-  priceItem     PriceItem?      @relation(fields: [priceItemId], references: [id], onDelete: SetNull)
-  performedAt   DateTime?
-  performedById String?
-  performedBy   Professional?   @relation("ProcedurePerformedBy", fields: [performedById], references: [id], onDelete: SetNull)
-  createdById   String?
-  createdBy     User?           @relation("ProcedureCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedById   String?
-  updatedBy     User?           @relation("ProcedureUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  id              String           @id @default(cuid())
+  name            String
+  tooth           String?
+  surfaces        DentalSurface[]  @default([])
+  price           Decimal          @db.Decimal(12, 2)
+  quantity        Int              @default(1)
+  discount        Decimal          @default(0) @db.Decimal(12, 2)
+  status          ProcedureStatus  @default(PLANIFICADA)
+  treatmentId     String
+  treatment       Treatment        @relation(fields: [treatmentId], references: [id], onDelete: Restrict)
+  evolutionId     String?
+  evolution       Evolution?       @relation(fields: [evolutionId], references: [id], onDelete: SetNull)
+  priceItemId     String?
+  priceItem       PriceItem?       @relation(fields: [priceItemId], references: [id], onDelete: SetNull)
+  performedAt     DateTime?
+  performedById   String?
+  performedBy     Professional?    @relation("ProcedurePerformedBy", fields: [performedById], references: [id], onDelete: SetNull)
+  createdById     String?
+  createdBy       User?            @relation("ProcedureCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById     String?
+  updatedBy       User?            @relation("ProcedureUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  supplyMovements SupplyMovement[]
 
   @@index([treatmentId, status])
   @@index([evolutionId])
@@ -385,15 +431,178 @@ model PatientFile {
 }
 
 model PriceItem {
-  id         String      @id @default(cuid())
+  id         String            @id @default(cuid())
   name       String
   category   String
-  price      Decimal     @db.Decimal(12, 2)
+  price      Decimal           @db.Decimal(12, 2)
   clinicId   String
-  clinic     Clinic      @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  clinic     Clinic            @relation(fields: [clinicId], references: [id], onDelete: Restrict)
   procedures Procedure[]
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  supplies   PriceItemSupply[]
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
 
   @@index([clinicId])
+}
+
+model ScheduleBlock {
+  id              String          @id @default(cuid())
+  reason          String
+  start           DateTime
+  end             DateTime
+  recurrence      BlockRecurrence @default(NONE)
+  recurrenceUntil DateTime?
+  clinicId        String
+  clinic          Clinic          @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  professionalId  String?
+  professional    Professional?   @relation(fields: [professionalId], references: [id], onDelete: Restrict)
+  createdById     String?
+  createdBy       User?           @relation("ScheduleBlockCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById     String?
+  updatedBy       User?           @relation("ScheduleBlockUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([clinicId, start])
+  @@index([professionalId, start])
+  @@index([createdById])
+  @@index([updatedById])
+}
+
+model Supply {
+  id         String            @id @default(cuid())
+  name       String
+  category   String
+  unit       String
+  sku        String?
+  stock      Decimal           @default(0) @db.Decimal(12, 3)
+  minStock   Decimal           @default(0) @db.Decimal(12, 3)
+  unitCost   Decimal?          @db.Decimal(12, 2)
+  active     Boolean           @default(true)
+  clinicId   String
+  clinic     Clinic            @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  movements  SupplyMovement[]
+  priceItems PriceItemSupply[]
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  deletedAt  DateTime?
+
+  @@index([clinicId])
+  @@index([clinicId, deletedAt])
+}
+
+model SupplyMovement {
+  id             String             @id @default(cuid())
+  type           SupplyMovementType
+  quantity       Decimal            @db.Decimal(12, 3)
+  resultingStock Decimal?           @db.Decimal(12, 3)
+  reason         String
+  supplyId       String
+  supply         Supply             @relation(fields: [supplyId], references: [id], onDelete: Restrict)
+  procedureId    String?
+  procedure      Procedure?         @relation(fields: [procedureId], references: [id], onDelete: SetNull)
+  createdById    String?
+  createdBy      User?              @relation("SupplyMovementCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt      DateTime           @default(now())
+
+  @@index([supplyId, createdAt])
+  @@index([procedureId])
+  @@index([createdById])
+}
+
+model PriceItemSupply {
+  id          String    @id @default(cuid())
+  quantity    Decimal   @db.Decimal(12, 3)
+  priceItemId String
+  priceItem   PriceItem @relation(fields: [priceItemId], references: [id], onDelete: Restrict)
+  supplyId    String
+  supply      Supply    @relation(fields: [supplyId], references: [id], onDelete: Restrict)
+
+  @@unique([priceItemId, supplyId])
+  @@index([priceItemId])
+  @@index([supplyId])
+}
+
+model DocumentTemplate {
+  id              String           @id @default(cuid())
+  type            DocumentType
+  name            String
+  title           String
+  body            String           @db.Text
+  isDefault       Boolean          @default(false)
+  clinicId        String
+  clinic          Clinic           @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  issuedDocuments IssuedDocument[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  deletedAt       DateTime?
+
+  @@index([clinicId, type])
+  @@index([clinicId, deletedAt])
+}
+
+model Prescription {
+  id              String             @id @default(cuid())
+  date            DateTime           @default(now())
+  diagnosis       String?
+  notes           String?
+  patientId       String
+  patient         Patient            @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  professionalId  String
+  professional    Professional       @relation(fields: [professionalId], references: [id], onDelete: Restrict)
+  items           PrescriptionItem[]
+  issuedDocuments IssuedDocument[]
+  createdById     String?
+  createdBy       User?              @relation("PrescriptionCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById     String?
+  updatedBy       User?              @relation("PrescriptionUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  deletedAt       DateTime?
+
+  @@index([patientId, date])
+  @@index([professionalId])
+  @@index([createdById])
+  @@index([updatedById])
+}
+
+model PrescriptionItem {
+  id             String       @id @default(cuid())
+  medication     String
+  dose           String
+  frequency      String
+  duration       String
+  instructions   String?
+  order          Int
+  prescriptionId String
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Restrict)
+
+  @@index([prescriptionId])
+}
+
+model IssuedDocument {
+  id             String            @id @default(cuid())
+  type           DocumentType
+  title          String
+  snapshot       Json
+  clinicId       String
+  clinic         Clinic            @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  patientId      String
+  patient        Patient           @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  templateId     String?
+  template       DocumentTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  treatmentId    String?
+  treatment      Treatment?        @relation(fields: [treatmentId], references: [id], onDelete: SetNull)
+  prescriptionId String?
+  prescription   Prescription?     @relation(fields: [prescriptionId], references: [id], onDelete: SetNull)
+  createdById    String?
+  createdBy      User?             @relation("IssuedDocumentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt      DateTime          @default(now())
+
+  @@index([clinicId, createdAt])
+  @@index([patientId, createdAt])
+  @@index([templateId])
+  @@index([treatmentId])
+  @@index([prescriptionId])
+  @@index([createdById])
 }

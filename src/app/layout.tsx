@@ -1,8 +1,11 @@
 /* eslint-disable @next/next/no-page-custom-font */
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { Bell, Search } from "lucide-react";
 import { Sidebar } from "@/components/sidebar";
+import { DemoViewSwitch } from "@/components/demo-view-switch";
 import { activeProvider } from "@/lib/ai/client";
+import { parseDemoView } from "@/lib/demo-view";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -10,7 +13,8 @@ export const metadata: Metadata = {
   description: "Gestión clínica inteligente",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const view = parseDemoView((await cookies()).get("clinika_view")?.value);
   const themeScript = `(() => {
     try {
       const saved = localStorage.getItem("clinika-theme");
@@ -34,7 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <div className="shell">
-          <Sidebar />
+          <Sidebar view={view} />
           <div className="content">
             <header className="topbar">
               <div className="row">
@@ -42,6 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <span className="small">Buscar paciente, cita o tratamiento…</span>
               </div>
               <div className="row">
+                <DemoViewSwitch value={view} />
                 <Bell size={18} />
                 <span className="avatar avatar-user">AL</span>
                 <div>

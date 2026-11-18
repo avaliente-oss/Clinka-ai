@@ -92,6 +92,11 @@ a { color: var(--primary); text-decoration: none; }
   position: sticky; z-index: 5; top: 0; display: flex; height: 64px; align-items: center; justify-content: space-between;
   padding: 0 32px; background: var(--surface); border-bottom: 1px solid var(--border);
 }
+.view-setting { display: flex; align-items: center; gap: 7px; }
+.view-label { color: var(--text-muted); font-size: 10px; font-weight: 600; }
+.view-toggle { display: flex; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface-subtle); }
+.view-toggle button { min-height: 28px; padding: 4px 8px; border: 0; border-radius: 5px; background: transparent; color: var(--text-muted); cursor: pointer; font-size: 10px; }
+.view-toggle button[aria-pressed="true"] { background: var(--surface); color: var(--primary); box-shadow: 0 1px 2px var(--shadow); font-weight: 600; }
 .main { width: 100%; max-width: 1280px; margin: 0 auto; padding: 28px 32px 48px; }
 .page-stack { display: grid; gap: 24px; }
 .page-stack > .pagehead, .page-stack > .tabs, .page-stack > .section-gap, .page-stack > * { margin-top: 0; margin-bottom: 0; }
@@ -192,6 +197,13 @@ textarea.input { resize: vertical; }
 .tab.active { border-color: var(--primary); color: var(--primary); font-weight: 600; }
 .notice { margin-bottom: 16px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface-subtle); color: var(--text-muted); font-size: 12px; }
 .alert { margin-bottom: 16px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--warning) 38%, var(--border)); border-radius: 7px; background: var(--warning-soft); color: var(--warning-text); font-size: 12px; }
+.form-feedback { display: grid; gap: 8px; }
+.form-error, .form-success { margin: 0; padding: 9px 11px; border-radius: 7px; font-size: 12px; }
+.form-error { border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--border)); background: var(--danger-soft); color: var(--danger-text); }
+.form-success { border: 1px solid color-mix(in srgb, var(--success) 35%, var(--border)); background: var(--success-soft); color: var(--success-text); }
+.form-warning { padding: 10px 12px; border: 1px solid color-mix(in srgb, var(--warning) 38%, var(--border)); border-radius: 7px; background: var(--warning-soft); color: var(--warning-text); font-size: 12px; }
+.form-warning ul { margin: 6px 0; padding-left: 18px; }
+.form-warning a { color: inherit; text-decoration: underline; }
 .empty-state { padding: 32px 20px; color: var(--text-muted); text-align: center; }
 .chat { height: 168px; padding: 12px; overflow: auto; background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 7px; }
 .bubble { max-width: 88%; margin-bottom: 10px; padding: 10px; background: var(--surface-raised); border: 1px solid var(--border); border-radius: 7px 7px 7px 2px; font-size: 13px; }
@@ -238,6 +250,15 @@ textarea.input { resize: vertical; }
 .appointment-actions > form { display: grid; grid-template-columns: minmax(150px, 1fr) auto; gap: 8px; }
 .appointment-actions summary { cursor: pointer; }
 .edit-appointment { display: grid; gap: 8px; margin-top: 8px; }
+.schedule-block { padding-right: 12px; padding-left: 12px; border: 1px solid var(--border); background-color: var(--surface-subtle); background-image: repeating-linear-gradient(135deg, transparent, transparent 8px, color-mix(in srgb, var(--border) 45%, transparent) 8px, color-mix(in srgb, var(--border) 45%, transparent) 10px); }
+.schedule-block + .appointment { border-top: 0; }
+.block-mark { display: grid; width: 40px; height: 40px; place-items: center; border: 1px solid var(--border); border-radius: 50%; background: var(--surface); color: var(--text-muted); font-size: 20px; }
+.schedule-block-row { padding-right: 8px; padding-left: 8px; background: var(--surface-subtle); }
+.fixed-hours { display: grid; gap: 8px; margin: 14px 0 8px; padding: 12px; border: 1px dashed var(--border); border-radius: 7px; background: var(--surface-subtle); }
+.fixed-hours h3 { margin: 0 0 2px; }
+.fixed-hours-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 8px; border-top: 1px solid var(--border); }
+.fixed-hours-row > div { display: grid; gap: 2px; }
+.blocked-appointment-badge { width: max-content; margin-top: 6px; background: var(--surface-subtle); border-color: var(--border); color: var(--text-muted); }
 .risk { display: inline-flex; max-width: 100%; align-items: center; gap: 4px; margin-top: 5px; overflow: hidden; color: var(--primary); font-size: 11px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .risk::before { content: "●"; font-size: 8px; }
 .risk-alto { color: var(--danger-text); }
@@ -374,6 +395,9 @@ textarea.input { resize: vertical; }
   .grid-kpi, .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .pagehead { align-items: flex-start; flex-direction: column; }
   .topbar { height: 60px; }
+  .view-label { display: none; }
+  .view-toggle button { padding: 4px 6px; font-size: 9px; }
+  .topbar > .row:last-child > svg, .topbar .avatar-user, .topbar .user-name { display: none; }
   .topbar > .row:first-child .small, .user-name + .small { display: none; }
   .main { padding: 20px 14px 36px; }
   .card { padding: 16px; }

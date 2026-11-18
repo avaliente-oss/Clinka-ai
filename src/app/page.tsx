@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import {
   CalendarCheck,
   CheckCircle2,
@@ -11,10 +12,12 @@ import { db } from "@/lib/db";
 import { proceduresTotal, serializeMoney } from "@/lib/money";
 import { dateMx, money, statusLabel } from "@/lib/utils";
 import { AppointmentStatus, ProcedureStatus, TreatmentStatus } from "@prisma/client";
+import { parseDemoView } from "@/lib/demo-view";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
+  const demoView = parseDemoView((await cookies()).get("clinika_view")?.value);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const tomorrow = new Date(today);
@@ -57,10 +60,12 @@ export default async function DashboardPage() {
   const insightsContext = JSON.stringify({
       todayAppointments: appointments.length,
       confirmed,
-      todayIncome: serializeMoney(payments._sum.amount ?? 0),
       monthNoShows: noShows,
-      realizedTreatmentValue: serializeMoney(realizedValue),
-      weeklyEvolutions,
+      ...(demoView !== "clinica" ? {
+        todayIncome: serializeMoney(payments._sum.amount ?? 0),
+        realizedTreatmentValue: serializeMoney(realizedValue),
+      } : {}),
+      ...(demoView !== "administracion" ? { weeklyEvolutions } : {}),
     });
 
   return (
@@ -99,12 +104,17 @@ export default async function DashboardPage() {
             ? Math.round((confirmed / appointments.length) * 100)
             : 0}% de la agenda`}
         />
-        <Kpi
+        {demoView !== "clinica" ? <Kpi
           icon={<CircleDollarSign />}
           label="Ingresos hoy"
           value={money(payments._sum.amount || 0)}
           note="Pagos registrados"
-        />
+        /> : <Kpi
+          icon={<Sparkles />}
+          label="Evoluciones esta semana"
+          value={String(weeklyEvolutions)}
+          note="Seguimiento clínico"
+        />}
         <Kpi
           icon={<TriangleAlert />}
           label="No-shows del mes"
@@ -172,7 +182,7 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      {activeTreatments.length > 0 && (
+      {demoView !== "administracion" && activeTreatments.length > 0 && (
         <section className="card">
           <div className="row between">
             <div>

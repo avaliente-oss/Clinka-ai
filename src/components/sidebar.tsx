@@ -11,23 +11,28 @@ import {
   Clock3,
   LayoutDashboard,
   Menu,
+  Package,
+  Settings2,
   Users,
   WalletCards,
   X,
 } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
+import type { DemoView } from "@/lib/demo-view";
 
 const navigation = [
-  ["/", "Inicio", LayoutDashboard],
-  ["/agenda", "Agenda", CalendarDays],
-  ["/pacientes", "Pacientes", Users],
-  ["/tratamientos", "Tratamientos", Activity],
-  ["/caja", "Caja y pagos", WalletCards],
-  ["/recordatorios", "Recordatorios", Clock3],
-  ["/reportes", "Reportes", ChartNoAxesCombined],
+  ["/", "Inicio", LayoutDashboard, "shared"],
+  ["/agenda", "Agenda", CalendarDays, "shared"],
+  ["/pacientes", "Pacientes", Users, "shared"],
+  ["/tratamientos", "Tratamientos", Activity, "clinica"],
+  ["/caja", "Caja y pagos", WalletCards, "administracion"],
+  ["/recordatorios", "Recordatorios", Clock3, "administracion"],
+  ["/reportes", "Reportes", ChartNoAxesCombined, "administracion"],
+  ["/inventario", "Inventario", Package, "administracion"],
+  ["/configuracion", "Documentos y configuración", Settings2, "administracion"],
 ] as const;
 
-export function Sidebar() {
+export function Sidebar({ view }: { view: DemoView }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -65,7 +70,7 @@ export function Sidebar() {
         </span>
       </div>
       <nav className="nav">
-        {navigation.map(([href, label, Icon]) => {
+        {navigation.filter(([, , , area]) => view === "todo" || area === "shared" || area === view).map(([href, label, Icon]) => {
           const active = href === "/" ? pathname === href : pathname.startsWith(href);
 
           return (
