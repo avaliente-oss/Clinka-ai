@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { registerEvolution } from "@/lib/actions";
+import { registerEvolutionState, type EvolutionActionState } from "@/lib/actions";
 import { centsToMoney, moneyToCents, procedureNetCents, proceduresTotalCents } from "@/lib/money-client";
 import { localDateTimeValue, money, statusLabel } from "@/lib/utils";
 import { SurfaceSelector } from "./surface-selector";
@@ -12,6 +12,7 @@ type Price = Option & { price: string };
 type Pending = { id: string; name: string; tooth: string | null; surfaces: string[]; price: string; quantity: number; discount: string };
 type NewProcedure = { name: string; tooth: string; surfaces: string[]; price: string; quantity: number; discount: string; priceItemId: string };
 const empty: NewProcedure = { name: "", tooth: "", surfaces: [], price: "0.00", quantity: 1, discount: "0.00", priceItemId: "" };
+const initialState: EvolutionActionState = {};
 
 export function EvolutionForm({
   treatmentId,
@@ -34,6 +35,7 @@ export function EvolutionForm({
   treatmentTotal: string;
   realizedTotal: string;
 }) {
+  const [actionState, action, pendingAction] = useActionState(registerEvolutionState, initialState);
   const [newProcedures, setNewProcedures] = useState<NewProcedure[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [editedProgress, setEditedProgress] = useState<number | null>(null);
@@ -66,17 +68,32 @@ export function EvolutionForm({
     update(index, { priceItemId: id, name: item?.name ?? "", price: item?.price ?? "0.00" });
   }
 
+  if (actionState.success) {
+    return (
+      <div className="form-feedback" role="status">
+        <p className="form-success">{actionState.success}</p>
+        {actionState.lowStockNotices?.length ? (
+          <div className="form-warning">
+            <b>Inventario bajo mínimo</b>
+            <ul>{actionState.lowStockNotices.map((notice) => <li key={notice.supplyId}>{notice.message}</li>)}</ul>
+          </div>
+        ) : null}
+        <button className="btn" onClick={() => window.location.reload()} type="button">Registrar otra evolución</button>
+      </div>
+    );
+  }
+
   return (
-    <form action={registerEvolution} className="grid evolution-form">
+    <form action={action} className="grid evolution-form" key={actionState.submissionId ?? "initial"}>
       <input type="hidden" name="treatmentId" value={treatmentId} />
       <input type="hidden" name="newProcedures" value={JSON.stringify(newProcedures)} />
       <div className="formgrid">
-        <div className="field"><label>Fecha</label><input className="input" type="date" name="date" defaultValue={localDateTimeValue(new Date()).slice(0, 10)} required /></div>
-        <div className="field"><label>Profesional</label><select className="input" name="professionalId" required defaultValue={defaultProfessionalId}>{professionals.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></div>
+        <div className="field"><label>Fecha</label><input className="input" type="date" name="date" defaultValue={actionState.values?.date ?? localDateTimeValue(new Date()).slice(0, 10)} required /></div>
+        <div className="field"><label>Profesional</label><select className="input" name="professionalId" required defaultValue={actionState.values?.professionalId ?? defaultProfessionalId}>{professionals.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></div>
         <div className="field"><label>Avance acumulado</label><input className="input" type="number" name="cumulativeProgress" min={previousProgress} max="100" value={editedProgress ?? suggestedProgress} onChange={(event) => setEditedProgress(Number(event.target.value))} required /><span className="small">Sugerido según prestaciones realizadas: {suggestedProgress}% · mínimo {previousProgress}%</span></div>
-        <div className="field"><label>Cita relacionada (opcional)</label><select className="input" name="appointmentId"><option value="">Sin cita</option>{appointments.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></div>
-        <div className="field span-all"><label>Notas clínicas</label><textarea className="input" name="clinicalNotes" rows={3} placeholder="Qué se realizó y observó" required /></div>
-        <div className="field span-all"><label>Próximos pasos</label><textarea className="input" name="nextSteps" rows={2} /></div>
+        <div className="field"><label>Cita relacionada (opcional)</label><select className="input" name="appointmentId" defaultValue={actionState.values?.appointmentId ?? ""}><option value="">Sin cita</option>{appointments.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></div>
+        <div className="field span-all"><label>Notas clínicas</label><textarea className="input" defaultValue={actionState.values?.clinicalNotes ?? ""} name="clinicalNotes" rows={3} placeholder="Qué se realizó y observó" required /></div>
+        <div className="field span-all"><label>Próximos pasos</label><textarea className="input" defaultValue={actionState.values?.nextSteps ?? ""} name="nextSteps" rows={2} /></div>
       </div>
       {pending.length > 0 && <fieldset className="procedure-checklist"><legend>Prestaciones planificadas realizadas hoy</legend>{pending.map((procedure) => <label className="row" key={procedure.id}><input type="checkbox" name="completedProcedureIds" value={procedure.id} checked={selectedIds.includes(procedure.id)} onChange={(event) => setSelectedIds((current) => event.target.checked ? [...current, procedure.id] : current.filter((id) => id !== procedure.id))} /><span>{procedure.name}{procedure.tooth ? ` · pieza ${procedure.tooth}` : ""}{procedure.surfaces.length ? ` · ${procedure.surfaces.map((surface) => statusLabel[surface] ?? surface).join(", ")}` : ""} · neto {money(centsToMoney(procedureNetCents(procedure)))}</span></label>)}</fieldset>}
       <div>
@@ -92,7 +109,8 @@ export function EvolutionForm({
           <button className="btn danger" type="button" onClick={() => setNewProcedures((current) => current.filter((_, itemIndex) => itemIndex !== index))} aria-label="Eliminar prestación"><Trash2 size={14} /></button>
         </div>)}
       </div>
-      <button className="btn primary">Guardar evolución</button>
+      {actionState.error && <p className="form-error" role="alert">{actionState.error}</p>}
+      <button className="btn primary" disabled={pendingAction}>{pendingAction ? "Guardando…" : "Guardar evolución"}</button>
     </form>
   );
 }

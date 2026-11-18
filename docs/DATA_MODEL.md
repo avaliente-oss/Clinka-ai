@@ -67,6 +67,12 @@ Un bloqueo aplica si es de toda la clínica (`professionalId` nulo) o del profes
 
 Existencias y cantidades usan `Decimal(12,3)`; costos unitarios usan `Decimal(12,2)`. `SupplyMovement.quantity` es un delta firmado y nunca puede ser cero. `PriceItemSupply.quantity` debe ser positiva. Los movimientos conservan autor, fecha, motivo, saldo resultante opcional y referencia opcional a la prestación que consumió el material.
 
+- Una entrada incrementa existencias y puede actualizar el costo unitario; una salida se captura positiva y se persiste como delta negativo; un ajuste guarda la diferencia entre el conteo físico y la existencia anterior.
+- El cambio de `Supply.stock` y su movimiento se escriben en la misma transacción. Se permiten existencias negativas para no bloquear la atención clínica.
+- Al realizar una prestación con `priceItemId`, cada renglón de su receta se multiplica por `Procedure.quantity`. En la misma transacción de la evolución se crea un movimiento `CONSUMO`, se enlaza a la prestación y se descuenta el insumo.
+- El consumo es idempotente por prestación: si ya existe un movimiento `CONSUMO` ligado a ella no vuelve a descontarse. No existe actualmente una acción para regresar una prestación realizada a planificada ni para eliminarla; cuando se incorpore deberá registrar el movimiento inverso, nunca borrar el kardex.
+- Un insumo usado por una receta no se borra lógicamente desde la interfaz; puede desactivarse para conservar recetas e historial.
+
 ## Documentos
 
 `Clinic` contiene razón social, domicilio, contacto, RFC, logotipo y pie documental opcionales. `Professional` contiene cédula, cédula de especialidad y universidad. Las plantillas cubren presupuesto, receta, consentimiento y estado de cuenta. Cada emisión crea un `IssuedDocument`; sus referencias opcionales usan `SET NULL`, pero el `snapshot` JSON mantiene el contenido histórico.

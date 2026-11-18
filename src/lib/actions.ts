@@ -19,6 +19,7 @@ import {
 import { getSessionUserId } from "./audit";
 import { db } from "./db";
 import { decimal } from "./money";
+import { consumeProcedureSupplies, type LowStockNotice } from "./inventory";
 import { expandScheduleBlocks, findConflictingBlock } from "./schedule";
 import { activeWhere } from "./soft-delete";
 import { localDateTimeValue, parseDateOnly } from "./utils";
@@ -531,7 +532,7 @@ export async function registerEvolution(form: FormData) {
     throw new Error(`El avance no puede ser menor al ${previousProgress}% previo.`);
   }
 
-  await db.$transaction(async (tx) => {
+  const lowStockNotices = await db.$transaction(async (tx) => {
     if (completedIds.length) {
       const validCount = await tx.procedure.count({
         where: { id: { in: completedIds }, treatmentId, status: ProcedureStatus.PLANIFICADA },
@@ -554,8 +555,12 @@ export async function registerEvolution(form: FormData) {
       },
     });
     if (completedIds.length) {
-      await tx.procedure.updateMany({
-        where: { id: { in: completedIds }, treatmentId },
+      const completed = await tx.procedure.updateMany({
+        where: {
+          id: { in: completedIds },
+          treatmentId,
+          status: ProcedureStatus.PLANIFICADA,
+        },
         data: {
           status: ProcedureStatus.REALIZADA,
           evolutionId: evolution.id,
@@ -564,6 +569,9 @@ export async function registerEvolution(form: FormData) {
           updatedById: userId,
         },
       });
+      if (completed.count !== completedIds.length) {
+        throw new Error("Una prestación seleccionada ya no está pendiente.");
+      }
     }
     if (newProcedures.length) {
       await tx.procedure.createMany({
@@ -585,6 +593,15 @@ export async function registerEvolution(form: FormData) {
         })),
       });
     }
+    const realizedProcedures = await tx.procedure.findMany({
+      where: { evolutionId: evolution.id, status: ProcedureStatus.REALIZADA },
+      select: { id: true },
+    });
+    const inventoryNotices = await consumeProcedureSupplies(
+      tx,
+      realizedProcedures.map((procedure) => procedure.id),
+      userId,
+    );
     await tx.treatment.update({
       where: { id: treatmentId },
       data: {
@@ -593,7 +610,47 @@ export async function registerEvolution(form: FormData) {
         updatedById: userId,
       },
     });
+    return inventoryNotices;
   });
   revalidatePath("/tratamientos");
   revalidatePath(`/pacientes/${treatment.patientId}`);
+  revalidatePath("/inventario");
+  revalidatePath("/");
+  return lowStockNotices;
+}
+
+export type EvolutionActionState = {
+  error?: string;
+  success?: string;
+  submissionId?: string;
+  values?: Record<string, string>;
+  lowStockNotices?: LowStockNotice[];
+};
+
+export async function registerEvolutionState(
+  _state: EvolutionActionState,
+  form: FormData,
+): Promise<EvolutionActionState> {
+  const values = Object.fromEntries([
+    "date",
+    "professionalId",
+    "cumulativeProgress",
+    "appointmentId",
+    "clinicalNotes",
+    "nextSteps",
+  ].map((field) => [field, String(form.get(field) ?? "")]));
+  try {
+    const lowStockNotices = await registerEvolution(form);
+    return {
+      success: "Evolución guardada.",
+      lowStockNotices,
+      submissionId: crypto.randomUUID(),
+    };
+  } catch (error) {
+    return {
+      error: actionError(error),
+      values,
+      submissionId: crypto.randomUUID(),
+    };
+  }
 }

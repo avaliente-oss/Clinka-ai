@@ -341,6 +341,34 @@ textarea.input { resize: vertical; }
 .reminder-footer .ai-label { margin-top: 0; }
 .report-period { padding: 8px 12px; }
 .report-insight { margin-bottom: 16px; }
+.inventory-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.inventory-section-head { margin-bottom: 14px; }
+.inventory-section-head h2, .inventory-section-head p { margin-top: 0; margin-bottom: 3px; }
+.inventory-filters { display: grid; grid-template-columns: minmax(180px, 1.4fr) minmax(170px, 1fr) auto auto auto; align-items: center; gap: 10px; margin-bottom: 16px; }
+.inventory-badges { display: flex; flex-wrap: wrap; gap: 5px; }
+.inventory-status.success { background: var(--success-soft); border-color: color-mix(in srgb, var(--success) 35%, var(--border)); color: var(--success-text); }
+.inventory-status.warning { background: var(--warning-soft); border-color: color-mix(in srgb, var(--warning) 38%, var(--border)); color: var(--warning-text); }
+.inventory-status.danger { background: var(--danger-soft); border-color: color-mix(in srgb, var(--danger) 35%, var(--border)); color: var(--danger-text); }
+.inventory-edit > summary { list-style: none; }
+.inventory-edit .modal-like { width: min(560px, 78vw); }
+.inventory-delete { display: grid; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.inventory-delete .form-warning { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.inventory-mobile-list { display: none; }
+.inventory-mobile-card { display: grid; gap: 14px; }
+.inventory-operations { grid-template-columns: minmax(320px, .9fr) minmax(0, 1.1fr); }
+.inventory-movements { display: grid; }
+.inventory-movement { display: grid; gap: 7px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.inventory-movement:last-child { border-bottom: 0; }
+.inventory-movement-amount { text-align: right; white-space: nowrap; }
+.recipe-list { display: grid; margin-top: 14px; }
+.recipe-card { padding: 12px 0; border-bottom: 1px solid var(--border); }
+.recipe-card:last-child { border-bottom: 0; }
+.recipe-card > summary { cursor: pointer; list-style: none; }
+.recipe-form { margin-top: 12px; padding: 12px; background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 7px; }
+.recipe-row { display: grid; grid-template-columns: minmax(0, 1fr) 140px 36px; gap: 8px; }
+.dashboard-inventory h2, .dashboard-inventory p { margin: 0; }
+.dashboard-inventory-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 20px; margin-top: 14px; }
+.dashboard-inventory-list > a { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 9px; border-top: 1px solid var(--border); color: var(--text); }
 .recommendation-list, .chart-legend { flex-wrap: wrap; }
 .chart-legend { justify-content: center; }
 .chart-container { height: 280px; color: var(--text-muted); }
@@ -370,6 +398,8 @@ textarea.input { resize: vertical; }
   .grid-equal, .two, .grid-3, .three { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .patient-aside { position: static; }
   .dashboard-treatments { grid-template-columns: 1fr; }
+  .inventory-filters { grid-template-columns: 1fr 1fr; }
+  .inventory-operations { grid-template-columns: 1fr; }
 }
 @media (max-width: 767px) {
   .treatment-desktop-table { display: none; }
@@ -382,6 +412,9 @@ textarea.input { resize: vertical; }
   .appointment-patient > b, .appointment-patient .small { white-space: normal; }
   .appointment-actions > form { grid-template-columns: minmax(0, 1fr) auto; }
   .appointment-actions details { width: 100%; }
+  .inventory-desktop-table { display: none; }
+  .inventory-mobile-list { display: grid; gap: 12px; }
+  .inventory-edit .modal-like { width: auto; }
 }
 @media (max-width: 700px) {
   .agenda-filter, .odontogram-editor { grid-template-columns: 1fr; }
@@ -414,6 +447,9 @@ textarea.input { resize: vertical; }
   .listitem .avatar { display: none; }
   .listitem > .badge { margin-left: 76px; }
   .patient-contact { align-items: flex-start; flex-direction: column; }
+  .inventory-kpis, .inventory-filters, .dashboard-inventory-list { grid-template-columns: 1fr; }
+  .recipe-row { grid-template-columns: minmax(0, 1fr) 100px 36px; }
+  .inventory-movement > .row { align-items: flex-start; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }

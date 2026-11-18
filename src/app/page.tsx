@@ -4,6 +4,7 @@ import {
   CalendarCheck,
   CheckCircle2,
   CircleDollarSign,
+  PackageSearch,
   Sparkles,
   TriangleAlert,
 } from "lucide-react";
@@ -13,6 +14,8 @@ import { proceduresTotal, serializeMoney } from "@/lib/money";
 import { dateMx, money, statusLabel } from "@/lib/utils";
 import { AppointmentStatus, ProcedureStatus, TreatmentStatus } from "@prisma/client";
 import { parseDemoView } from "@/lib/demo-view";
+import { activeWhere } from "@/lib/soft-delete";
+import { formatQuantity } from "@/lib/quantity";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +29,7 @@ export default async function DashboardPage() {
   const weekStart = new Date(today);
   weekStart.setDate(today.getDate() - 6);
 
-  const [appointments, payments, noShows, realizedProcedures, weeklyEvolutions, activeTreatments] = await Promise.all([
+  const [appointments, payments, noShows, realizedProcedures, weeklyEvolutions, activeTreatments, supplies] = await Promise.all([
     db.appointment.findMany({
       where: { start: { gte: today, lt: tomorrow }, patient: { deletedAt: null } },
       include: { patient: true, professional: true },
@@ -51,8 +54,16 @@ export default async function DashboardPage() {
       orderBy: { updatedAt: "desc" },
       take: 6,
     }),
+    db.supply.findMany({
+      where: activeWhere({ active: true }),
+      orderBy: { name: "asc" },
+    }),
   ]);
   const realizedValue = proceduresTotal(realizedProcedures);
+  const lowSupplies = supplies
+    .filter((supply) => supply.stock.lt(supply.minStock))
+    .sort((left, right) => left.stock.minus(left.minStock).comparedTo(right.stock.minus(right.minStock)))
+    .slice(0, 5);
 
   const confirmed = appointments.filter(
     (appointment) => appointment.status === AppointmentStatus.CONFIRMADA,
@@ -181,6 +192,16 @@ export default async function DashboardPage() {
           <InsightsBody context={insightsContext} />
         </div>
       </section>
+
+      {demoView !== "clinica" && (
+        <section className="card dashboard-inventory">
+          <div className="row between">
+            <div className="row"><span className="iconbox"><PackageSearch /></span><div><h2>Insumos bajo mínimo</h2><p className="small">Requieren compra o ajuste de existencia.</p></div></div>
+            <Link className="small" href="/inventario?low=1">Ver inventario →</Link>
+          </div>
+          {lowSupplies.length ? <div className="dashboard-inventory-list">{lowSupplies.map((supply) => <Link href={`/inventario?supply=${supply.id}#kardex`} key={supply.id}><span><b>{supply.name}</b><span className="small block">Mínimo {formatQuantity(supply.minStock)} {supply.unit}</span></span><span className={`badge inventory-status ${supply.stock.isNegative() ? "danger" : "warning"}`}>{supply.stock.isNegative() ? "Existencia negativa" : "Bajo mínimo"} · {formatQuantity(supply.stock)} {supply.unit}</span></Link>)}</div> : <p className="small">Todos los insumos activos están en nivel adecuado.</p>}
+        </section>
+      )}
 
       {demoView !== "administracion" && activeTreatments.length > 0 && (
         <section className="card">
