@@ -395,7 +395,11 @@ textarea.input { resize: vertical; }
 .document-issue-card > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; list-style: none; }
 .document-issue-card > form { margin-top: 14px; }
 .document-issue-card .field > span { display: block; margin-bottom: 6px; color: var(--text-muted); font-size: 11px; font-weight: 600; }
-.prescription-item-form { display: grid; grid-template-columns: 1.3fr .8fr 1fr .8fr 1.3fr 36px; gap: 7px; }
+.prescription-item-form { display: grid; gap: 12px; min-width: 0; margin: 0; padding: 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.prescription-item-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.prescription-item-head legend { float: left; padding: 0; color: var(--text); font-size: 13px; font-weight: 600; }
+.prescription-item-dosage { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
+.document-issue-card[open] { grid-column: 1 / -1; }
 .reissue-form { display: grid; justify-items: end; gap: 6px; }
 .document-body { line-height: 1.7; }
 .document-text { white-space: pre-wrap; }
@@ -455,7 +459,6 @@ textarea.input { resize: vertical; }
   .professional-document-form > div:first-child { grid-column: 1 / -1; }
   .template-editor-grid { grid-template-columns: 1fr; }
   .document-preview { grid-column: 1; }
-  .prescription-item-form { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 767px) {
   .treatment-desktop-table { display: none; }
