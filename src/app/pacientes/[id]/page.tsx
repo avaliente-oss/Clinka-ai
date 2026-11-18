@@ -7,6 +7,7 @@ import { AIScribe } from "@/components/ai-scribe";
 import { EvolutionForm } from "@/components/evolution-form";
 import { Odontogram } from "@/components/odontogram";
 import { PatientCopilot } from "@/components/patient-copilot";
+import { PatientDocuments } from "@/components/patient-documents";
 import { PatientTabs } from "@/components/patient-tabs";
 import { TreatmentForm } from "@/components/treatment-form";
 import { addPatientFile, updateTreatmentStatus } from "@/lib/actions";
@@ -15,7 +16,8 @@ import { addMoney, procedureNet, proceduresTotal, serializeMoney, subtractMoney,
 import { activeWhere } from "@/lib/soft-delete";
 import { dateMx, enumLabel, money, statusLabel } from "@/lib/utils";
 import { parseDemoView } from "@/lib/demo-view";
-import { PatientType, ProcedureStatus } from "@prisma/client";
+import { type DocumentKind } from "@/lib/documents";
+import { DocumentType, PatientType, ProcedureStatus } from "@prisma/client";
 
 export default async function PatientPage({
   params,
@@ -26,7 +28,7 @@ export default async function PatientPage({
   const demoView = parseDemoView((await cookies()).get("clinika_view")?.value);
   const administrationOnly = demoView === "administracion";
   const clinicalOnly = demoView === "clinica";
-  const [patient, professionals, prices] = await Promise.all([
+  const [patient, professionals, prices, documentTemplates] = await Promise.all([
     db.patient.findFirst({ where: activeWhere({ id }), include: {
       notes: {
         where: activeWhere(),
@@ -51,9 +53,12 @@ export default async function PatientPage({
       appointments: { orderBy: { start: "desc" }, take: 30 },
       payments: { orderBy: { date: "desc" } },
       files: { orderBy: { date: "desc" } },
+      prescriptions: { where: activeWhere(), include: { professional: true, items: { orderBy: { order: "asc" } } }, orderBy: { date: "desc" } },
+      issuedDocuments: { include: { createdBy: true }, orderBy: { createdAt: "desc" } },
     } }),
     db.professional.findMany({ orderBy: { name: "asc" } }),
     db.priceItem.findMany({ orderBy: { name: "asc" } }),
+    db.documentTemplate.findMany({ where: activeWhere(), orderBy: [{ type: "asc" }, { isDefault: "desc" }, { name: "asc" }] }),
   ]);
 
   if (!patient) notFound();
@@ -62,12 +67,18 @@ export default async function PatientPage({
     sum.plus(proceduresTotal(treatment.procedures.filter((procedure) => procedure.status === ProcedureStatus.REALIZADA))), addMoney());
   const paidTotal = sumMoney(patient.payments, (payment) => payment.amount);
   const balance = subtractMoney(treatmentTotal, paidTotal);
+  const availableDocuments: DocumentKind[] = clinicalOnly
+    ? [DocumentType.RECETA, DocumentType.CONSENTIMIENTO]
+    : administrationOnly
+      ? [DocumentType.PRESUPUESTO, DocumentType.ESTADO_CUENTA]
+      : [DocumentType.PRESUPUESTO, DocumentType.RECETA, DocumentType.CONSENTIMIENTO, DocumentType.ESTADO_CUENTA];
   const tabs = [
     { id: "datos", label: "Datos" },
     ...(!administrationOnly ? [{ id: "historia", label: "Historia clínica" }] : []),
     ...(!administrationOnly && patient.type === PatientType.DENTAL ? [{ id: "odontograma", label: "Odontograma" }] : []),
     { id: "tratamientos", label: "Tratamientos" },
     ...(!clinicalOnly ? [{ id: "pagos", label: "Pagos" }] : []),
+    { id: "documentos", label: "Documentos" },
     { id: "archivos", label: "Archivos" },
   ];
 
@@ -273,6 +284,19 @@ export default async function PatientPage({
               <p className="small">Sin pagos registrados.</p>
             )}
           </section>}
+
+          <section aria-labelledby="tab-documentos" className="card" data-patient-panel hidden id="documentos" role="tabpanel" tabIndex={0}>
+            <div className="row between"><div><h2>Documentos del paciente</h2><p className="small">Cada emisión conserva una copia inmutable para reimpresión.</p></div><span className="badge">{patient.issuedDocuments.length} emitidos</span></div>
+            <PatientDocuments
+              patientId={patient.id}
+              available={availableDocuments}
+              templates={documentTemplates.filter((template) => availableDocuments.includes(template.type)).map((template) => ({ id: template.id, name: template.name, type: template.type, isDefault: template.isDefault }))}
+              treatments={patient.treatments.map((treatment) => ({ id: treatment.id, name: treatment.title }))}
+              professionals={professionals.map((professional) => ({ id: professional.id, name: `${professional.name}${professional.licenseNumber ? ` · Céd. ${professional.licenseNumber}` : ""}` }))}
+              prescriptions={patient.prescriptions.map((prescription) => ({ id: prescription.id, date: dateMx(prescription.date), professional: prescription.professional.name, diagnosis: prescription.diagnosis ?? "", itemSummary: prescription.items.map((item) => item.medication).join(", ") }))}
+              issued={patient.issuedDocuments.filter((document) => availableDocuments.includes(document.type)).map((document) => ({ id: document.id, type: document.type, title: document.title, date: dateMx(document.createdAt, { dateStyle: "medium", timeStyle: "short" }), user: document.createdBy?.name ?? "Sistema" }))}
+            />
+          </section>
 
           <section aria-labelledby="tab-archivos" className="card" data-patient-panel hidden id="archivos" role="tabpanel" tabIndex={0}>
             <h2>Archivos · metadatos</h2>

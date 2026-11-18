@@ -77,6 +77,12 @@ Existencias y cantidades usan `Decimal(12,3)`; costos unitarios usan `Decimal(12
 
 `Clinic` contiene razón social, domicilio, contacto, RFC, logotipo y pie documental opcionales. `Professional` contiene cédula, cédula de especialidad y universidad. Las plantillas cubren presupuesto, receta, consentimiento y estado de cuenta. Cada emisión crea un `IssuedDocument`; sus referencias opcionales usan `SET NULL`, pero el `snapshot` JSON mantiene el contenido histórico.
 
+- Las plantillas son texto plano con marcadores permitidos. React renderiza los valores como texto escapado; nunca se interpreta HTML capturado por usuarios. Los bloques de prestaciones, medicamentos, estado de cuenta y firmas son estructuras generadas por la aplicación.
+- Al emitir se copia al `snapshot` el encabezado de la clínica, cuerpo y título de la plantilla, valores sustituidos, tablas, importes, profesional y fecha. Reimprimir consulta exclusivamente esa copia y no los registros vivos.
+- Crear una receta y su `IssuedDocument` ocurre en una sola transacción. Una receta previa puede originar una nueva emisión sin alterar su contenido clínico.
+- Las plantillas y recetas usan borrado lógico. Cambiar una plantilla predeterminada desmarca las demás del mismo tipo; eliminar la predeterminada promueve una alternativa disponible.
+- Presupuestos calculan planificado, realizado, pagado y saldo con aritmética decimal. Estados de cuenta usan sólo prestaciones realizadas y muestran `A favor` cuando pagos superan lo realizado.
+
 ## Reglas de Tratamiento → Evolución → Prestación
 
 1. Una prestación `PLANIFICADA` pertenece al tratamiento y no tiene evolución.

@@ -36,7 +36,8 @@ Abre `http://localhost:3000` e ingresa con `demo@clinika.mx` / `demo123`. La car
 - Plan de tratamiento, agenda inteligente, mensajería, copiloto del paciente e insights de negocio con módulos IA tipados con Zod.
 - Autenticación demo local por cookie. Ninguna respuesta IA se guarda automáticamente; exige confirmación y muestra el aviso de revisión.
 - Selector demo Clínica / Administración / Todo que adapta navegación, dashboard y expediente sin cambiar permisos.
-- Modelo preparado para inventario y documentos; sus interfaces completas se incorporarán en las etapas 2 y 3.
+- Inventario con existencias, kardex, recetas de insumos y consumo automático al realizar prestaciones.
+- Documentos personalizables: presupuestos, recetas, consentimientos y estados de cuenta con plantillas, snapshots inmutables y vista lista para imprimir o guardar como PDF.
 
 ## Decisiones del MVP
 

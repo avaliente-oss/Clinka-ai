@@ -369,6 +369,57 @@ textarea.input { resize: vertical; }
 .dashboard-inventory h2, .dashboard-inventory p { margin: 0; }
 .dashboard-inventory-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 20px; margin-top: 14px; }
 .dashboard-inventory-list > a { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 9px; border-top: 1px solid var(--border); color: var(--text); }
+.logo-preview { display: flex; min-height: 74px; align-items: center; justify-content: center; margin-top: 8px; padding: 10px; border: 1px dashed var(--border); border-radius: 7px; background: var(--surface-subtle); }
+.logo-preview img { max-width: 220px; max-height: 58px; object-fit: contain; }
+.professional-document-list { display: grid; gap: 10px; margin-top: 16px; }
+.professional-document-form { display: grid; grid-template-columns: minmax(180px, 1fr) repeat(3, minmax(150px, 1fr)) auto; align-items: center; gap: 10px; padding: 12px 0; border-top: 1px solid var(--border); }
+.professional-document-form > .form-error, .professional-document-form > .form-success { grid-column: 1 / -1; }
+.template-type-summary { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+.template-list { display: grid; }
+.template-editor { border-top: 1px solid var(--border); }
+.template-editor > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 4px; cursor: pointer; list-style: none; }
+.template-editor-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(180px, .55fr); gap: 16px; padding: 0 4px 18px; }
+.template-fields { align-content: start; }
+.template-body-input { min-height: 280px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; line-height: 1.55; }
+.placeholder-sidebar { align-self: start; padding: 14px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface-subtle); }
+.placeholder-sidebar h3 { margin: 0 0 4px; }
+.placeholder-chip { display: block; width: 100%; margin-top: 6px; padding: 6px 8px; overflow: hidden; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--primary); cursor: pointer; font: 10px ui-monospace, SFMono-Regular, Menlo, monospace; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+.document-preview { grid-column: 1 / -1; padding: 14px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface-subtle); }
+.document-preview > article { max-height: 460px; margin-top: 8px; padding: 28px; overflow: auto; background: #fff; color: #161616; border: 1px solid #ddd; }
+.document-preview h2 { margin-top: 0; text-align: center; }
+.template-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 4px 16px; }
+.new-template { margin-top: 16px; padding: 14px; border: 1px dashed var(--border); border-radius: 7px; }
+.new-template > .row { margin-bottom: 8px; }
+.document-issue-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.document-issue-card { padding: 14px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface-subtle); }
+.document-issue-card > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; list-style: none; }
+.document-issue-card > form { margin-top: 14px; }
+.document-issue-card .field > span { display: block; margin-bottom: 6px; color: var(--text-muted); font-size: 11px; font-weight: 600; }
+.prescription-item-form { display: grid; grid-template-columns: 1.3fr .8fr 1fr .8fr 1.3fr 36px; gap: 7px; }
+.reissue-form { display: grid; justify-items: end; gap: 6px; }
+.document-body { line-height: 1.7; }
+.document-text { white-space: pre-wrap; }
+.unknown-placeholder { padding: 1px 3px; background: #fff0d5; color: #7a4300; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.document-block { margin: 20px 0; }
+.document-block table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.document-block th, .document-block td { padding: 7px 6px; border: 1px solid #d6d6d6; text-align: left; vertical-align: top; }
+.document-block th { background: #f2f3f3; font-weight: 600; }
+.document-totals { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 18px; margin-top: 10px; font-size: 11px; }
+.prescription-list { display: grid; gap: 12px; padding-left: 24px; }
+.prescription-list small { display: block; }
+.signature-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 64px; margin-top: 70px; text-align: center; }
+.signature-grid span { display: block; border-top: 1px solid currentColor; }
+.signature-grid small { display: block; color: #555; }
+.document-screen { min-height: calc(100vh - 150px); }
+.document-screen-actions { display: flex; justify-content: flex-end; max-width: 8.5in; margin: 0 auto 16px; }
+.document-print-page { display: flex; width: min(8.5in, 100%); min-height: 11in; flex-direction: column; margin: 0 auto; padding: .65in .7in; background: #fff; color: #171717; box-shadow: 0 4px 24px var(--shadow-strong); font-family: Arial, Helvetica, sans-serif; }
+.document-header { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(230px, 1fr); gap: 24px; padding-bottom: 18px; border-bottom: 2px solid #006d77; }
+.document-brand { display: flex; min-height: 62px; align-items: center; font-size: 22px; }
+.document-brand img { max-width: 230px; max-height: 70px; object-fit: contain; object-position: left center; }
+.document-clinic-data { display: grid; align-content: center; justify-items: end; font-size: 10px; text-align: right; }
+.document-print-page main { flex: 1; padding: 28px 0; }
+.document-print-page h1 { margin: 0 0 26px; font-size: 23px; text-align: center; }
+.document-print-page footer { display: flex; justify-content: space-between; gap: 24px; padding-top: 14px; border-top: 1px solid #bbb; color: #555; font-size: 9px; }
 .recommendation-list, .chart-legend { flex-wrap: wrap; }
 .chart-legend { justify-content: center; }
 .chart-container { height: 280px; color: var(--text-muted); }
@@ -400,6 +451,11 @@ textarea.input { resize: vertical; }
   .dashboard-treatments { grid-template-columns: 1fr; }
   .inventory-filters { grid-template-columns: 1fr 1fr; }
   .inventory-operations { grid-template-columns: 1fr; }
+  .professional-document-form { grid-template-columns: 1fr 1fr; }
+  .professional-document-form > div:first-child { grid-column: 1 / -1; }
+  .template-editor-grid { grid-template-columns: 1fr; }
+  .document-preview { grid-column: 1; }
+  .prescription-item-form { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 767px) {
   .treatment-desktop-table { display: none; }
@@ -433,6 +489,11 @@ textarea.input { resize: vertical; }
   .topbar > .row:last-child > svg, .topbar .avatar-user, .topbar .user-name { display: none; }
   .topbar > .row:first-child .small, .user-name + .small { display: none; }
   .main { padding: 20px 14px 36px; }
+  .document-issue-grid, .professional-document-form { grid-template-columns: 1fr; }
+  .document-print-page { min-height: auto; padding: 24px 18px; }
+  .document-header { grid-template-columns: 1fr; }
+  .document-clinic-data { justify-items: start; text-align: left; }
+  .document-print-page footer { flex-direction: column; }
   .card { padding: 16px; }
   .page-stack { gap: 16px; }
   .section-gap { margin-top: 16px; }
@@ -489,3 +550,15 @@ textarea.input { resize: vertical; }
 .skeleton-row { height: 40px; margin-bottom: 10px; }
 @keyframes skeleton-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 @media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
+
+@page { size: letter; margin: 0; }
+@media print {
+  html, body { overflow: visible; background: #fff; color: #171717; }
+  .sidebar, .topbar, .mobile-menu-button, .sidebar-backdrop, .ai-demo-banner, .document-screen-actions { display: none !important; }
+  .content { margin: 0; }
+  .main { max-width: none; margin: 0; padding: 0; }
+  .document-screen { min-height: 0; }
+  .document-print-page { width: 8.5in; min-height: 11in; margin: 0; padding: .55in .65in; box-shadow: none; print-color-adjust: exact; }
+  .document-block table { break-inside: avoid; }
+  .signature-grid, .document-print-page footer { break-inside: avoid; }
+}
